@@ -61,20 +61,19 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Check if version changed
+      - name: Check if version needs publishing
         id: version
         run: |
           CURRENT=$(node -p "require('./package.json').version")
-          git show HEAD~1:package.json > /tmp/old-package.json 2>/dev/null || echo '{"version":"0.0.0"}' > /tmp/old-package.json
-          PREVIOUS=$(node -p "require('/tmp/old-package.json').version")
+          PUBLISHED=$(npm view codebase-analyzer-mcp version 2>/dev/null || echo "0.0.0")
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          echo "previous=$PREVIOUS" >> $GITHUB_OUTPUT
-          if [ "$CURRENT" != "$PREVIOUS" ]; then
+          echo "published=$PUBLISHED" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" != "$PUBLISHED" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Version changed: $PREVIOUS -> $CURRENT"
+            echo "Version $CURRENT not published (npm has $PUBLISHED)"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "Version unchanged: $CURRENT"
+            echo "Version $CURRENT already published"
           fi
 
       - name: Build JS
