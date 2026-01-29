@@ -11,6 +11,44 @@ import {
 const DEFAULT_TOKEN_BUDGET = 800_000;
 const CHARS_PER_TOKEN = 4;
 
+/**
+ * Result of resolving a source to a local path
+ */
+export interface ResolvedSource {
+  repoPath: string;
+  cleanup?: () => Promise<void>;
+}
+
+/**
+ * Resolve a source (local path or GitHub URL) to a local directory path
+ * Returns a cleanup function if the source was cloned to a temp directory
+ */
+export async function resolveSource(source: string): Promise<ResolvedSource> {
+  if (await isGitHubUrl(source)) {
+    const repoPath = await cloneGitHubRepo(source);
+
+    return {
+      repoPath,
+      cleanup: async () => {
+        const { rm } = await import("node:fs/promises");
+        try {
+          await rm(repoPath, { recursive: true, force: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+      },
+    };
+  }
+
+  // Local path - verify it exists
+  const stats = await stat(source);
+  if (!stats.isDirectory()) {
+    throw new Error(`Source must be a directory: ${source}`);
+  }
+
+  return { repoPath: source };
+}
+
 export function estimateTokens(content: string): number {
   return Math.ceil(content.length / CHARS_PER_TOKEN);
 }

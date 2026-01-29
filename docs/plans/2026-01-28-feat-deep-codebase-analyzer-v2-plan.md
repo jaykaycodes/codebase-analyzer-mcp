@@ -279,23 +279,23 @@ Medium-high complexity. Tree-sitter integration is the main risk.
 
 #### Tasks
 
-- [ ] Implement capability discovery tool
+- [x] Implement capability discovery tool
   - Return available analysis types
   - Provide cost estimates
   - List supported languages
 
-- [ ] Refactor `analyze_repo` tool
+- [x] Refactor `analyze_repo` tool
   - Add `depth` parameter (surface/standard/deep)
   - Add `tokenBudget` parameter
   - Add `includeSemantics` flag
   - Return progressive disclosure format
 
-- [ ] Implement `expand_section` tool
+- [x] Implement `expand_section` tool
   - Accept analysis ID and section ID
   - Support detail and full expansion levels
   - Use cached analysis state
 
-- [ ] Add targeted analysis tools
+- [x] Add targeted analysis tools
   - `find_patterns` - Architecture pattern detection
   - `trace_dataflow` - Data flow analysis
   - `analyze_module` - Single module deep dive
@@ -321,10 +321,10 @@ src/mcp/
 
 #### Success Criteria
 
-- [ ] Agents can discover all available capabilities
-- [ ] `expand_section` returns results in <5s using cache
-- [ ] All tools have comprehensive Zod schemas with descriptions
-- [ ] Error responses include actionable guidance
+- [x] Agents can discover all available capabilities
+- [x] `expand_section` returns results in <5s using cache (achieved: instant from cache)
+- [x] All tools have comprehensive Zod schemas with descriptions
+- [x] Error responses include actionable guidance
 
 ---
 
