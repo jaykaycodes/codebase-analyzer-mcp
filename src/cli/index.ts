@@ -295,16 +295,23 @@ function formatAnalysisAsMarkdown(result: any): string {
 
   if (result.summary) {
     lines.push("## Summary");
-    lines.push(result.summary);
+    lines.push(`- **Architecture:** ${result.summary.architectureType}`);
+    lines.push(`- **Complexity:** ${result.summary.complexity}`);
+    if (result.summary.primaryPatterns?.length > 0) {
+      lines.push(`- **Patterns:** ${result.summary.primaryPatterns.join(", ")}`);
+    }
+    if (result.summary.techStack?.length > 0) {
+      lines.push(`- **Tech Stack:** ${result.summary.techStack.join(", ")}`);
+    }
     lines.push("");
   }
 
   if (result.repositoryMap) {
     lines.push("## Repository Map");
-    lines.push(`- **Total Files:** ${result.repositoryMap.totalFiles}`);
+    lines.push(`- **Total Files:** ${result.repositoryMap.fileCount}`);
     lines.push(`- **Estimated Tokens:** ${result.repositoryMap.estimatedTokens}`);
-    lines.push(`- **Languages:** ${result.repositoryMap.languages?.map((l: any) => `${l.name} (${l.percentage}%)`).join(", ")}`);
-    lines.push(`- **Entry Points:** ${result.repositoryMap.entryPoints?.join(", ")}`);
+    lines.push(`- **Languages:** ${result.repositoryMap.languages?.map((l: any) => `${l.language} (${l.percentage}%)`).join(", ")}`);
+    lines.push(`- **Entry Points:** ${result.repositoryMap.entryPoints?.slice(0, 5).join(", ")}`);
     lines.push("");
   }
 
@@ -322,10 +329,22 @@ function formatAnalysisAsMarkdown(result: any): string {
 
   if (result.forAgent) {
     lines.push("## Agent Hints");
-    lines.push(`- **Architecture Type:** ${result.forAgent.architectureType}`);
-    lines.push(`- **Entry Points:** ${result.forAgent.keyEntryPoints?.join(", ")}`);
-    lines.push(`- **Suggested Focus:** ${result.forAgent.suggestedFocus?.join(", ")}`);
+    lines.push(result.forAgent.quickSummary);
     lines.push("");
+    if (result.forAgent.keyInsights?.length > 0) {
+      lines.push("**Key Insights:**");
+      for (const insight of result.forAgent.keyInsights) {
+        lines.push(`- ${insight}`);
+      }
+      lines.push("");
+    }
+    if (result.forAgent.suggestedNextSteps?.length > 0) {
+      lines.push("**Suggested Next Steps:**");
+      for (const step of result.forAgent.suggestedNextSteps) {
+        lines.push(`- ${step}`);
+      }
+      lines.push("");
+    }
   }
 
   if (result.warnings?.length > 0) {

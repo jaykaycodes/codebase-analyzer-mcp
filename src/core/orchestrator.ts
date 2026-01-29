@@ -87,10 +87,10 @@ export async function orchestrateAnalysis(
   const surface = await surfaceAnalysis(repoPath, {
     exclude: options.exclude,
   });
-  logger.stopSpinner(`Surface: ${surface.repositoryMap.totalFiles} files, ${surface.identifiedModules.length} modules`);
+  logger.stopSpinner(`Surface: ${surface.repositoryMap.fileCount} files, ${surface.identifiedModules.length} modules`);
   logger.surface(`Found ${surface.repositoryMap.languages.length} languages`, {
-    languages: surface.repositoryMap.languages.slice(0, 5).map((l) => l.name),
-    fileCount: surface.repositoryMap.totalFiles,
+    languages: surface.repositoryMap.languages.slice(0, 5).map((l) => l.language),
+    fileCount: surface.repositoryMap.fileCount,
     complexity: surface.complexity,
   });
 
