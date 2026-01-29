@@ -4,6 +4,7 @@ import { orchestrateAnalysis } from "../core/orchestrator.js";
 import { resolveSource } from "../core/repo-loader.js";
 import { logger } from "../core/logger.js";
 import type { AnalysisDepth } from "../types.js";
+import pkg from "../../package.json";
 
 /**
  * Extract repository name from source (GitHub URL or local path)
@@ -20,8 +21,8 @@ const program = new Command();
 
 program
   .name("cba")
-  .description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI")
-  .version("2.0.0");
+  .description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI\n\nUse --mcp to run as MCP server for Claude Code")
+  .version(pkg.version);
 
 program
   .command("analyze")
@@ -226,4 +227,12 @@ function formatAnalysisAsMarkdown(result: any): string {
   return lines.join("\n");
 }
 
-program.parse();
+// Check for --mcp flag before parsing (runs MCP server instead of CLI)
+if (process.argv.includes("--mcp")) {
+  import("../mcp/server.js").catch((err) => {
+    console.error("Failed to start MCP server:", err);
+    process.exit(1);
+  });
+} else {
+  program.parse();
+}

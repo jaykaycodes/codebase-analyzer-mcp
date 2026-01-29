@@ -1,12 +1,12 @@
 {
   "name": "codebase-analyzer",
-  "version": "2.0.0",
+  "version": "1.0.1",
   "description": "Multi-layer codebase analysis with Gemini AI. 4 agents, 5 commands, 3 skills for architecture analysis, pattern detection, and dataflow tracing.",
   "author": {
-    "name": "jkcorrea",
-    "url": "https://github.com/jkcorrea"
+    "name": "Jake Correa",
+    "url": "https://github.com/jaykaycodes"
   },
-  "homepage": "https://github.com/jkcorrea/codebase-analyzer-mcp",
+  "homepage": "https://github.com/jaykaycodes/codebase-analyzer-mcp",
   "license": "MIT",
   "keywords": [
     "codebase-analysis",
@@ -20,7 +20,9 @@
   "mcpServers": {
     "codebase-analyzer": {
       "command": "node",
-      "args": ["dist/mcp/server.js"],
+      "args": [
+        "dist/mcp/server.js"
+      ],
       "cwd": "."
     }
   }

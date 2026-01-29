@@ -1,12 +1,13 @@
 # Codebase Analyzer MCP
 
-[![Claude Plugin](https://img.shields.io/badge/Claude-Plugin-blueviolet)](https://github.com/jkcorrea/codebase-analyzer-mcp)
+[![Claude Plugin](https://img.shields.io/badge/Claude-Plugin-blueviolet)](https://github.com/jaykaycodes/codebase-analyzer-mcp)
 [![npm](https://img.shields.io/npm/v/codebase-analyzer-mcp)](https://www.npmjs.com/package/codebase-analyzer-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Multi-layer codebase analysis with Gemini AI. Both an MCP server for Claude and a standalone CLI.
 
 **Features:**
+
 - Progressive disclosure - start cheap, drill down as needed
 - Tree-sitter structural analysis (no LLM cost)
 - Gemini semantic analysis (opt-in)
@@ -16,42 +17,45 @@ Multi-layer codebase analysis with Gemini AI. Both an MCP server for Claude and 
 
 ## Installation
 
-### Standalone Binary (Recommended)
+### Package Manager (Recommended)
 
-Download the binary for your platform from [Releases](https://github.com/jkcorrea/codebase-analyzer-mcp/releases):
+```bash
+npm install -g codebase-analyzer-mcp
+bun install -g codebase-analyzer-mcp
+pnpm install -g codebase-analyzer-mcp
+yarn add -g codebase-analyzer-mcp
+```
+
+### Standalone Binary
+
+Download the binary for your platform from [Releases](https://github.com/jaykaycodes/codebase-analyzer-mcp/releases):
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/jkcorrea/codebase-analyzer-mcp/releases/latest/download/cba-macos-arm64 -o cba
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-arm64 -o cba
 chmod +x cba
 sudo mv cba /usr/local/bin/
 
 # macOS (Intel)
-curl -L https://github.com/jkcorrea/codebase-analyzer-mcp/releases/latest/download/cba-macos-x64 -o cba
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-x64 -o cba
 chmod +x cba
 sudo mv cba /usr/local/bin/
 
 # Linux (x64)
-curl -L https://github.com/jkcorrea/codebase-analyzer-mcp/releases/latest/download/cba-linux-x64 -o cba
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-x64 -o cba
 chmod +x cba
 sudo mv cba /usr/local/bin/
 
 # Linux (ARM64)
-curl -L https://github.com/jkcorrea/codebase-analyzer-mcp/releases/latest/download/cba-linux-arm64 -o cba
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-arm64 -o cba
 chmod +x cba
 sudo mv cba /usr/local/bin/
-```
-
-### npm
-
-```bash
-npm install -g codebase-analyzer-mcp
 ```
 
 ### From Source (with Bun)
 
 ```bash
-git clone https://github.com/jkcorrea/codebase-analyzer-mcp.git
+git clone https://github.com/jaykaycodes/codebase-analyzer-mcp.git
 cd codebase-analyzer-mcp
 bun install && bun run build
 ```
@@ -98,21 +102,23 @@ cba capabilities
 
 ### Analysis Depths
 
-| Depth | Speed | LLM Cost | Includes |
-|-------|-------|----------|----------|
-| `surface` | Fast | ~0 | Files, languages, entry points, modules |
-| `standard` | Medium | Low | + symbols, imports, complexity metrics |
-| `deep` | Slow | High | + semantic analysis, architecture insights |
+| Depth      | Speed  | LLM Cost | Includes                                   |
+| ---------- | ------ | -------- | ------------------------------------------ |
+| `surface`  | Fast   | ~0       | Files, languages, entry points, modules    |
+| `standard` | Medium | Low      | + symbols, imports, complexity metrics     |
+| `deep`     | Slow   | High     | + semantic analysis, architecture insights |
 
 ## MCP Server Usage
 
 Add to Claude Code settings (`~/.claude/settings.json`):
 
+### Using standalone binary (recommended)
+
 ```json
 {
   "mcpServers": {
     "codebase-analyzer": {
-      "command": "/usr/local/bin/cba",
+      "command": "cba",
       "args": ["--mcp"],
       "env": {
         "GEMINI_API_KEY": "your_api_key"
@@ -122,14 +128,34 @@ Add to Claude Code settings (`~/.claude/settings.json`):
 }
 ```
 
-Or with npm install:
+### Using npx (no install)
 
 ```json
 {
   "mcpServers": {
     "codebase-analyzer": {
       "command": "npx",
-      "args": ["codebase-analyzer-mcp"],
+      "args": ["-y", "codebase-analyzer-mcp", "--mcp"],
+      "env": {
+        "GEMINI_API_KEY": "your_api_key"
+      }
+    }
+  }
+}
+```
+
+### Using global npm install
+
+```bash
+npm install -g codebase-analyzer-mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "codebase-analyzer": {
+      "command": "cba",
+      "args": ["--mcp"],
       "env": {
         "GEMINI_API_KEY": "your_api_key"
       }
@@ -140,13 +166,13 @@ Or with npm install:
 
 ### MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `analyze_repo` | Full analysis with progressive disclosure |
-| `expand_section` | Drill into specific sections |
-| `find_patterns` | Detect design/architecture patterns |
-| `trace_dataflow` | Trace data flow through the system |
-| `get_analysis_capabilities` | List available options |
+| Tool                        | Description                               |
+| --------------------------- | ----------------------------------------- |
+| `analyze_repo`              | Full analysis with progressive disclosure |
+| `expand_section`            | Drill into specific sections              |
+| `find_patterns`             | Detect design/architecture patterns       |
+| `trace_dataflow`            | Trace data flow through the system        |
+| `get_analysis_capabilities` | List available options                    |
 
 ## Output Structure
 
@@ -189,31 +215,31 @@ This package also works as a Claude Code plugin with agents, commands, and skill
 
 ```bash
 # Direct install
-claude /plugin install https://github.com/jkcorrea/codebase-analyzer-mcp
+claude /plugin install https://github.com/jaykaycodes/codebase-analyzer-mcp
 
 # Or add as marketplace first (if you want to browse/manage multiple plugins)
-claude /plugin marketplace add https://github.com/jkcorrea/codebase-analyzer-mcp
+claude /plugin marketplace add https://github.com/jaykaycodes/codebase-analyzer-mcp
 claude /plugin install codebase-analyzer
 ```
 
 ### Plugin Commands
 
-| Command | Description |
-|---------|-------------|
-| `/analyze` | Analyze a codebase |
+| Command     | Description          |
+| ----------- | -------------------- |
+| `/analyze`  | Analyze a codebase   |
 | `/patterns` | Find design patterns |
-| `/trace` | Trace data flow |
-| `/explore` | Quick exploration |
-| `/compare` | Compare repositories |
+| `/trace`    | Trace data flow      |
+| `/explore`  | Quick exploration    |
+| `/compare`  | Compare repositories |
 
 ### Plugin Agents
 
-| Agent | Purpose |
-|-------|---------|
+| Agent                   | Purpose                    |
+| ----------------------- | -------------------------- |
 | `architecture-analyzer` | Full architecture analysis |
-| `pattern-detective` | Pattern detection |
-| `dataflow-tracer` | Data flow tracing |
-| `codebase-explorer` | Quick exploration |
+| `pattern-detective`     | Pattern detection          |
+| `dataflow-tracer`       | Data flow tracing          |
+| `codebase-explorer`     | Quick exploration          |
 
 ## Development
 

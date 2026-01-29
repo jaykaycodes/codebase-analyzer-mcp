@@ -1,7 +1,10 @@
 # Source
 src/
 tsconfig.json
-tsup.config.ts
+
+# Binaries (too large for npm, use GitHub releases)
+dist/cba
+dist/cba-*
 
 # Dev files
 .github/

@@ -13,10 +13,11 @@ import {
   traceDataflowSchema,
   executeTraceDataflow,
 } from "./tools/index.js";
+import pkg from "../../package.json";
 
 const server = new McpServer({
   name: "codebase-analyzer",
-  version: "2.0.0",
+  version: pkg.version,
 });
 
 server.tool(
@@ -208,7 +209,7 @@ server.tool(
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Codebase Analyzer MCP server v2.0.0 running on stdio");
+  console.error(`Codebase Analyzer MCP server v${pkg.version} running on stdio`);
 }
 
 main().catch((error) => {

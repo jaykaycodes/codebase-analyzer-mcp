@@ -1,14 +1,16 @@
 {
   "name": "codebase-analyzer-mcp",
-  "version": "2.0.0",
+  "version": "1.0.1",
   "description": "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
   "type": "module",
   "main": "dist/mcp/server.js",
   "bin": {
-    "cba": "dist/cli/index.js"
+    "cba": "dist/cli/index.js",
+    "codebase-analyzer": "dist/cli/index.js"
   },
   "files": [
-    "dist",
+    "dist/cli",
+    "dist/mcp",
     "agents",
     "commands",
     "skills",
@@ -30,17 +32,18 @@
     "test": "bun test",
     "cli": "bun src/cli/index.ts",
     "cba": "bun src/cli/index.ts",
-    "prepublishOnly": "bun run build:js"
+    "version:sync": "bun scripts/sync-version.ts",
+    "prepublishOnly": "bun run version:sync && bun run build:js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jkcorrea/codebase-analyzer-mcp.git"
+    "url": "git+https://github.com/jaykaycodes/codebase-analyzer-mcp.git"
   },
-  "homepage": "https://github.com/jkcorrea/codebase-analyzer-mcp#readme",
+  "homepage": "https://github.com/jaykaycodes/codebase-analyzer-mcp#readme",
   "bugs": {
-    "url": "https://github.com/jkcorrea/codebase-analyzer-mcp/issues"
+    "url": "https://github.com/jaykaycodes/codebase-analyzer-mcp/issues"
   },
-  "author": "jkcorrea",
+  "author": "Jake Correa",
   "keywords": [
     "mcp",
     "gemini",
