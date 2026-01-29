@@ -1,11 +1,11 @@
 {
-  "name": "jaykaycodes-plugins",
+  "name": "codebase-analyzer",
   "owner": {
     "name": "Jake Correa",
     "url": "https://github.com/jaykaycodes"
   },
   "metadata": {
-    "description": "AI-powered development tools by Jake Correa",
+    "description": "Multi-layer codebase analysis tools",
     "version": "1.0.1"
   },
   "plugins": [
