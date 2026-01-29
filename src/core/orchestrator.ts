@@ -30,6 +30,7 @@ import {
 } from "./layers/index.js";
 import { analysisCache } from "./cache.js";
 import { buildAnalysisResult, generateAnalysisId } from "./disclosure.js";
+import { logger } from "./logger.js";
 
 /**
  * Default token budget (800k tokens)
@@ -73,13 +74,24 @@ export async function orchestrateAnalysis(
   const warnings: string[] = [];
   const partialFailures: { layer: string; error: string }[] = [];
 
-  console.error(`[Orchestrator] Starting analysis: ${analysisId}`);
-  console.error(`[Orchestrator] Depth: ${depth}, Budget: ${tokenBudget}, Semantics: ${includeSemantics}`);
+  logger.orchestrator(`Starting analysis: ${analysisId}`);
+  logger.orchestrator(`Depth: ${depth}, Budget: ${tokenBudget}, Semantics: ${includeSemantics}`, {
+    depth,
+    tokenBudget,
+    includeSemantics,
+  });
+  logger.startSpinner("Running surface analysis...");
 
   // Phase 1: Surface Analysis (always runs)
-  console.error(`[Orchestrator] Phase 1: Surface analysis`);
+  logger.progress("surface", "Phase 1: Starting surface analysis");
   const surface = await surfaceAnalysis(repoPath, {
     exclude: options.exclude,
+  });
+  logger.stopSpinner(`Surface: ${surface.repositoryMap.totalFiles} files, ${surface.identifiedModules.length} modules`);
+  logger.surface(`Found ${surface.repositoryMap.languages.length} languages`, {
+    languages: surface.repositoryMap.languages.slice(0, 5).map((l) => l.name),
+    fileCount: surface.repositoryMap.totalFiles,
+    complexity: surface.complexity,
   });
 
   state.phase = "structural";
@@ -94,7 +106,7 @@ export async function orchestrateAnalysis(
 
   // If surface-only depth, skip structural and semantic
   if (depth === "surface") {
-    console.error(`[Orchestrator] Surface-only mode, skipping deeper analysis`);
+    logger.orchestrator("Surface-only mode, skipping deeper analysis");
     const result = buildAnalysisResult(
       analysisId,
       repoPath,
@@ -109,7 +121,8 @@ export async function orchestrateAnalysis(
   }
 
   // Phase 2: Structural Analysis (parallel by module)
-  console.error(`[Orchestrator] Phase 2: Structural analysis`);
+  logger.progress("structural", "Phase 2: Starting structural analysis");
+  logger.startSpinner("Running structural analysis...");
   let structural: StructuralAnalysis[] = [];
 
   try {
@@ -145,7 +158,10 @@ export async function orchestrateAnalysis(
     );
     modulesToAnalyze = modulesToAnalyze.slice(0, maxModules);
 
-    console.error(`[Orchestrator] Analyzing ${modulesToAnalyze.length} modules`);
+    logger.updateSpinner(`Analyzing ${modulesToAnalyze.length} modules...`);
+    logger.structural(`Analyzing ${modulesToAnalyze.length} modules`, {
+      modules: modulesToAnalyze.map((m) => m.name),
+    });
 
     // Load file contents for modules
     const allFiles: string[] = [];
@@ -163,10 +179,24 @@ export async function orchestrateAnalysis(
       state
     );
 
-    console.error(`[Orchestrator] Structural analysis completed for ${structural.length} modules`);
+    logger.stopSpinner(`Structural: ${structural.length} modules analyzed`);
+    const totalSymbols = structural.reduce(
+      (acc, s) => acc + s.exports.length + s.symbols.length,
+      0
+    );
+    const totalFunctions = structural.reduce(
+      (acc, s) => acc + s.complexity.functionCount,
+      0
+    );
+    logger.structural(`Completed structural analysis`, {
+      modules: structural.length,
+      totalSymbols,
+      totalFunctions,
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[Orchestrator] Structural analysis failed: ${errorMessage}`);
+    logger.stopSpinner();
+    logger.error("structural", `Structural analysis failed: ${errorMessage}`);
     partialFailures.push({ layer: "structural", error: errorMessage });
   }
 
@@ -175,17 +205,23 @@ export async function orchestrateAnalysis(
   let semantic: SemanticAnalysis | null = null;
 
   if (includeSemantics) {
-    console.error(`[Orchestrator] Phase 3: Semantic analysis`);
+    logger.progress("semantic", "Phase 3: Starting semantic analysis (LLM)");
+    logger.startSpinner("Running semantic analysis with Gemini...");
 
     try {
       semantic = await semanticAnalysis(surface, structural, {
         tokenBudget: Math.min(8192, tokenBudget - state.tokensUsed),
         focusAreas: options.focus,
       });
-      console.error(`[Orchestrator] Semantic analysis completed`);
+      logger.stopSpinner("Semantic analysis complete");
+      logger.semantic(`Completed semantic analysis`, {
+        architectureType: semantic?.architectureType,
+        patternsFound: semantic?.patterns?.length || 0,
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`[Orchestrator] Semantic analysis failed: ${errorMessage}`);
+      logger.stopSpinner();
+      logger.error("semantic", `Semantic analysis failed: ${errorMessage}`);
       partialFailures.push({ layer: "semantic", error: errorMessage });
     }
   } else {
@@ -200,7 +236,7 @@ export async function orchestrateAnalysis(
 
   // Phase 4: Synthesis
   state.phase = "synthesis";
-  console.error(`[Orchestrator] Phase 4: Synthesis`);
+  logger.progress("synthesis", "Phase 4: Building final result");
 
   const durationMs = Date.now() - startTime;
   const result = buildAnalysisResult(
@@ -230,7 +266,12 @@ export async function orchestrateAnalysis(
   }, undefined, depth);
 
   state.phase = "complete";
-  console.error(`[Orchestrator] Analysis complete in ${durationMs}ms`);
+  logger.orchestrator(`Analysis complete`, {
+    durationMs,
+    phases: ["surface", "structural", ...(includeSemantics ? ["semantic"] : []), "synthesis"],
+    warnings: warnings.length,
+    failures: partialFailures.length,
+  });
 
   return result;
 }
@@ -245,9 +286,17 @@ async function analyzeModulesInParallel(
 ): Promise<StructuralAnalysis[]> {
   const results: StructuralAnalysis[] = [];
 
+  const totalBatches = Math.ceil(modules.length / MAX_PARALLEL_STRUCTURAL);
+
   // Process in batches
   for (let i = 0; i < modules.length; i += MAX_PARALLEL_STRUCTURAL) {
+    const batchNum = Math.floor(i / MAX_PARALLEL_STRUCTURAL) + 1;
     const batch = modules.slice(i, i + MAX_PARALLEL_STRUCTURAL);
+
+    logger.debug("structural", `Processing batch ${batchNum}/${totalBatches}`, {
+      modules: batch.map((m) => m.name),
+    });
+    logger.updateSpinner(`Structural: batch ${batchNum}/${totalBatches} (${batch.map((m) => m.name).join(", ")})`);
 
     // Create tasks for this batch
     const batchTasks: SubAgentTask[] = batch.map((m) => ({
@@ -255,6 +304,7 @@ async function analyzeModulesInParallel(
       type: "structural",
       target: m.path,
       status: "pending",
+      startTime: Date.now(),
     }));
     state.tasks.push(...batchTasks);
 
@@ -298,20 +348,30 @@ async function analyzeModulesInParallel(
       fileContents
     );
 
-    // Update task status
+    // Update task status and log results
     for (const task of batchTasks) {
       const result = batchResults.find((r) => r.modulePath === task.target);
       if (result) {
         task.status = "completed";
         task.endTime = Date.now();
         task.result = result;
+        const duration = task.endTime - (task.startTime || task.endTime);
+        logger.debug("structural", `Module ${task.target} completed`, {
+          functions: result.complexity.functionCount,
+          classes: result.complexity.classCount,
+          exports: result.exports.length,
+          symbols: result.symbols.length,
+          durationMs: duration,
+        });
       } else {
         task.status = "failed";
         task.endTime = Date.now();
         task.error = "No result returned";
+        logger.warn("structural", `Module ${task.target} returned no result`);
       }
     }
 
+    logger.debug("structural", `Batch ${batchNum} complete: ${batchResults.length}/${batch.length} succeeded`);
     results.push(...batchResults);
   }
 
