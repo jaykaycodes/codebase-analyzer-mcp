@@ -25,7 +25,10 @@
         "gemini",
         "mcp"
       ],
-      "source": "."
+      "source": {
+        "source": "github",
+        "repo": "jaykaycodes/codebase-analyzer-mcp"
+      }
     }
   ]
 }
