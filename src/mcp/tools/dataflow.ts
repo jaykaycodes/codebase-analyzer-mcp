@@ -116,7 +116,7 @@ ${to ? `TO: ${to}` : "TO: (trace as far as possible)"}
 
 Repository structure:
 - Entry points: ${surface.repositoryMap.entryPoints.join(", ")}
-- Primary language: ${surface.repositoryMap.languages[0]?.name || "Unknown"}
+- Primary language: ${surface.repositoryMap.languages[0]?.language || "Unknown"}
 - Modules: ${surface.identifiedModules.map(m => m.name).join(", ")}
 
 File contents:

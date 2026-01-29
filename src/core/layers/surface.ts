@@ -356,11 +356,12 @@ function buildDirectoryTree(files: FileInfo[]): DirectoryNode {
 
       // If this directory has only one child directory, merge them
       while (
+        node.children &&
         node.children.length === 1 &&
         node.children[0].type === "directory" &&
         node.name !== "."
       ) {
-        const child = node.children[0];
+        const child: DirectoryNode = node.children[0];
         node.name = `${node.name}/${child.name}`;
         node.children = child.children;
       }

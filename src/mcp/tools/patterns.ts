@@ -130,7 +130,7 @@ export async function executeFindPatterns(input: FindPatternsInput): Promise<Pat
 Repository structure:
 ${JSON.stringify(surface.identifiedModules, null, 2)}
 
-Primary language: ${surface.repositoryMap.languages[0]?.name || "Unknown"}
+Primary language: ${surface.repositoryMap.languages[0]?.language || "Unknown"}
 
 File contents:
 ${fileSummary}

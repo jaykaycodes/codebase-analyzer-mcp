@@ -17,18 +17,20 @@
     "AGENTS.md"
   ],
   "scripts": {
-    "build": "bun run build:ts && bun run build:bin",
-    "build:ts": "tsup",
+    "build": "bun run build:js && bun run build:bin",
+    "build:js": "bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && echo '#!/usr/bin/env node' | cat - dist/cli/index.js > /tmp/cba.js && mv /tmp/cba.js dist/cli/index.js",
     "build:bin": "bun build src/cli/index.ts --compile --outfile dist/cba",
     "build:bin:all": "bun run build:bin:macos && bun run build:bin:linux && bun run build:bin:windows",
     "build:bin:macos": "bun build src/cli/index.ts --compile --target=bun-darwin-arm64 --outfile dist/cba-macos-arm64 && bun build src/cli/index.ts --compile --target=bun-darwin-x64 --outfile dist/cba-macos-x64",
     "build:bin:linux": "bun build src/cli/index.ts --compile --target=bun-linux-x64 --outfile dist/cba-linux-x64 && bun build src/cli/index.ts --compile --target=bun-linux-arm64 --outfile dist/cba-linux-arm64",
     "build:bin:windows": "bun build src/cli/index.ts --compile --target=bun-windows-x64 --outfile dist/cba-windows-x64.exe",
-    "dev": "tsup --watch",
+    "dev": "bun --watch src/cli/index.ts",
     "start": "bun dist/mcp/server.js",
-    "cli": "bun dist/cli/index.js",
-    "cba": "bun dist/cli/index.js",
-    "prepublishOnly": "bun run build:ts"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "cli": "bun src/cli/index.ts",
+    "cba": "bun src/cli/index.ts",
+    "prepublishOnly": "bun run build:js"
   },
   "repository": {
     "type": "git",
@@ -66,7 +68,6 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^25.1.0",
-    "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   }
 }

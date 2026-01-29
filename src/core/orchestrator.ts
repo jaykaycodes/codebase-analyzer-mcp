@@ -16,6 +16,7 @@ import type {
   AnalysisDepth,
   AnalysisOptions,
   AnalysisResultV2,
+  ModuleIdentification,
   OrchestratorState,
   SemanticAnalysis,
   StructuralAnalysis,
@@ -282,7 +283,7 @@ export async function orchestrateAnalysis(
  */
 async function analyzeModulesInParallel(
   repoPath: string,
-  modules: Array<{ path: string; name: string; type: string; fileCount: number; primaryLanguage: string }>,
+  modules: ModuleIdentification[],
   state: OrchestratorState
 ): Promise<StructuralAnalysis[]> {
   const results: StructuralAnalysis[] = [];

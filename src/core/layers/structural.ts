@@ -19,9 +19,10 @@ import type {
 } from "../../types.js";
 
 // Tree-sitter will be lazily initialized
-let Parser: typeof import("web-tree-sitter") | null = null;
-let parserInstance: import("web-tree-sitter") | null = null;
-const loadedLanguages = new Map<string, import("web-tree-sitter").Language>();
+import type { Parser as ParserType, Language } from "web-tree-sitter";
+let ParserClass: typeof ParserType | null = null;
+let parserInstance: ParserType | null = null;
+const loadedLanguages = new Map<string, Language>();
 
 // Language configuration
 interface LanguageConfig {
@@ -106,15 +107,16 @@ const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
 /**
  * Initialize Tree-sitter parser (lazy)
  */
-async function initParser(): Promise<import("web-tree-sitter")> {
+async function initParser(): Promise<ParserType> {
   if (parserInstance) return parserInstance;
 
-  if (!Parser) {
-    Parser = await import("web-tree-sitter");
-    await Parser.default.init();
+  if (!ParserClass) {
+    const module = await import("web-tree-sitter");
+    ParserClass = module.Parser;
+    await ParserClass.init();
   }
 
-  parserInstance = new Parser.default();
+  parserInstance = new ParserClass();
   return parserInstance;
 }
 
