@@ -1,0 +1,25 @@
+# Source
+src/
+tsconfig.json
+tsup.config.ts
+
+# Dev files
+.github/
+.claude/
+docs/plans/
+*.log
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Test
+tests/
+*.test.ts
+
+# Misc
+node_modules/

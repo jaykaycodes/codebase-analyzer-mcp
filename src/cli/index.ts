@@ -1,27 +1,14 @@
 import { Command } from "commander";
-import {
-  analyzeRepo,
-  extractFeature,
-  queryRepo,
-  compareRepos,
-} from "../core/analyzer.js";
-import {
-  formatAnalyzeOutput,
-  formatFeatureOutput,
-  formatQueryOutput,
-  formatCompareOutput,
-} from "../core/output-formatter.js";
 import { basename } from "path";
 import { orchestrateAnalysis } from "../core/orchestrator.js";
 import { resolveSource } from "../core/repo-loader.js";
 import { logger } from "../core/logger.js";
-import type { OutputFormat, AnalysisDepth } from "../types.js";
+import type { AnalysisDepth } from "../types.js";
 
 /**
  * Extract repository name from source (GitHub URL or local path)
  */
 function extractSourceName(source: string): string {
-  // GitHub URL patterns
   const githubMatch = source.match(/github\.com\/([^\/]+\/[^\/]+)/);
   if (githubMatch) {
     return githubMatch[1].replace(/\.git$/, "");
@@ -33,12 +20,12 @@ const program = new Command();
 
 program
   .name("cba")
-  .description("Codebase Analyzer - Analyze repositories using Gemini AI")
+  .description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI")
   .version("2.0.0");
 
 program
   .command("analyze")
-  .description("Perform full architectural analysis of a repository (v2)")
+  .description("Perform architectural analysis of a repository")
   .argument("<source>", "Local path or GitHub URL")
   .option("-d, --depth <depth>", "Analysis depth: surface, standard, deep", "standard")
   .option("-f, --focus <areas...>", "Specific areas to focus on")
@@ -47,12 +34,7 @@ program
   .option("-s, --semantics", "Include deep semantic analysis (uses LLM)")
   .option("-v, --verbose", "Show detailed progress and subagent activity")
   .option("-q, --quiet", "Only output the final result (no progress)")
-  .option(
-    "--format <format>",
-    "Output format (json or markdown)",
-    "json"
-  )
-  .option("--v1", "Use legacy v1 analyzer instead of v2")
+  .option("--format <format>", "Output format (json or markdown)", "json")
   .action(async (source: string, options: {
     depth?: string;
     focus?: string[];
@@ -62,32 +44,11 @@ program
     verbose?: boolean;
     quiet?: boolean;
     format: string;
-    v1?: boolean;
   }) => {
     try {
-      // Set up logging
-      if (options.verbose) {
-        logger.setVerbose(true);
-      }
-      if (options.quiet) {
-        logger.setQuiet(true);
-      }
+      if (options.verbose) logger.setVerbose(true);
+      if (options.quiet) logger.setQuiet(true);
 
-      // Use v1 or v2
-      if (options.v1) {
-        if (!options.quiet) {
-          console.error(`Analyzing ${source} (v1 mode)...`);
-        }
-        const result = await analyzeRepo({
-          source,
-          focus: options.focus,
-          exclude: options.exclude,
-        });
-        console.log(formatAnalyzeOutput(result, options.format as OutputFormat));
-        return;
-      }
-
-      // V2 analysis
       const sourceName = extractSourceName(source);
       const { repoPath, cleanup } = await resolveSource(source);
 
@@ -107,14 +68,11 @@ program
           console.log(JSON.stringify(result, null, 2));
         }
 
-        // Show log report in verbose mode
         if (options.verbose && !options.quiet) {
           console.error("\n" + logger.formatReport());
         }
       } finally {
-        if (cleanup) {
-          await cleanup();
-        }
+        if (cleanup) await cleanup();
       }
     } catch (error) {
       logger.error("cli", error instanceof Error ? error.message : String(error));
@@ -183,116 +141,11 @@ program
   });
 
 program
-  .command("feature")
-  .description("Analyze how a specific feature is implemented")
-  .argument("<source>", "Local path or GitHub URL")
-  .argument("<feature>", "Description of the feature to analyze")
-  .option("-v, --verbose", "Show detailed progress")
-  .option("-q, --quiet", "Only output the final result")
-  .option(
-    "--format <format>",
-    "Output format (json or markdown)",
-    "json"
-  )
-  .action(async (source: string, feature: string, options: {
-    verbose?: boolean;
-    quiet?: boolean;
-    format: string;
-  }) => {
-    try {
-      if (options.verbose) logger.setVerbose(true);
-      if (options.quiet) logger.setQuiet(true);
-
-      if (!options.quiet) {
-        console.error(`Analyzing feature "${feature}" in ${source}...`);
-      }
-      const result = await extractFeature({ source, feature });
-      console.log(formatFeatureOutput(result, options.format as OutputFormat));
-    } catch (error) {
-      logger.error("cli", error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    }
-  });
-
-program
-  .command("query")
-  .description("Ask a question about a codebase")
-  .argument("<source>", "Local path or GitHub URL")
-  .argument("<question>", "The question to ask")
-  .option("-v, --verbose", "Show detailed progress")
-  .option("-q, --quiet", "Only output the final result")
-  .option(
-    "--format <format>",
-    "Output format (json or markdown)",
-    "json"
-  )
-  .action(async (source: string, question: string, options: {
-    verbose?: boolean;
-    quiet?: boolean;
-    format: string;
-  }) => {
-    try {
-      if (options.verbose) logger.setVerbose(true);
-      if (options.quiet) logger.setQuiet(true);
-
-      if (!options.quiet) {
-        console.error(`Querying ${source}...`);
-      }
-      const result = await queryRepo({ source, question });
-      console.log(formatQueryOutput(result, options.format as OutputFormat));
-    } catch (error) {
-      logger.error("cli", error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    }
-  });
-
-program
-  .command("compare")
-  .description("Compare how multiple repos approach the same problem")
-  .argument("<sources...>", "Two or more local paths or GitHub URLs")
-  .option("-a, --aspect <aspect>", "The aspect to compare", "architecture")
-  .option("-v, --verbose", "Show detailed progress")
-  .option("-q, --quiet", "Only output the final result")
-  .option(
-    "--format <format>",
-    "Output format (json or markdown)",
-    "json"
-  )
-  .action(async (sources: string[], options: {
-    aspect: string;
-    verbose?: boolean;
-    quiet?: boolean;
-    format: string;
-  }) => {
-    if (sources.length < 2) {
-      console.error("Error: At least 2 repositories are required for comparison");
-      process.exit(1);
-    }
-    try {
-      if (options.verbose) logger.setVerbose(true);
-      if (options.quiet) logger.setQuiet(true);
-
-      if (!options.quiet) {
-        console.error(`Comparing ${sources.length} repositories...`);
-      }
-      const result = await compareRepos({
-        sources,
-        aspect: options.aspect,
-      });
-      console.log(formatCompareOutput(result, options.format as OutputFormat));
-    } catch (error) {
-      logger.error("cli", error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    }
-  });
-
-program
   .command("capabilities")
   .description("Show available analysis capabilities")
   .action(async () => {
     const { formatCapabilitiesResponse } = await import("../mcp/tools/capabilities.js");
-    const capabilities = formatCapabilitiesResponse();
-    console.log(JSON.stringify(capabilities, null, 2));
+    console.log(JSON.stringify(formatCapabilitiesResponse(), null, 2));
   });
 
 /**

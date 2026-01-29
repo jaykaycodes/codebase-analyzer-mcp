@@ -1,23 +1,55 @@
 {
   "name": "codebase-analyzer-mcp",
-  "version": "0.1.0",
-  "description": "MCP server that uses Gemini to analyze codebases for agent-optimized output",
+  "version": "2.0.0",
+  "description": "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
   "type": "module",
   "main": "dist/mcp/server.js",
   "bin": {
     "cba": "dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "agents",
+    "commands",
+    "skills",
+    ".claude-plugin",
+    "CLAUDE.md",
+    "AGENTS.md"
+  ],
   "scripts": {
-    "build": "tsup",
+    "build": "bun run build:ts && bun run build:bin",
+    "build:ts": "tsup",
+    "build:bin": "bun build src/cli/index.ts --compile --outfile dist/cba",
+    "build:bin:all": "bun run build:bin:macos && bun run build:bin:linux && bun run build:bin:windows",
+    "build:bin:macos": "bun build src/cli/index.ts --compile --target=bun-darwin-arm64 --outfile dist/cba-macos-arm64 && bun build src/cli/index.ts --compile --target=bun-darwin-x64 --outfile dist/cba-macos-x64",
+    "build:bin:linux": "bun build src/cli/index.ts --compile --target=bun-linux-x64 --outfile dist/cba-linux-x64 && bun build src/cli/index.ts --compile --target=bun-linux-arm64 --outfile dist/cba-linux-arm64",
+    "build:bin:windows": "bun build src/cli/index.ts --compile --target=bun-windows-x64 --outfile dist/cba-windows-x64.exe",
     "dev": "tsup --watch",
-    "start": "node dist/mcp/server.js",
-    "cli": "node dist/cli/index.js"
+    "start": "bun dist/mcp/server.js",
+    "cli": "bun dist/cli/index.js",
+    "cba": "bun dist/cli/index.js",
+    "prepublishOnly": "bun run build:ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jkcorrea/codebase-analyzer-mcp.git"
+  },
+  "homepage": "https://github.com/jkcorrea/codebase-analyzer-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/jkcorrea/codebase-analyzer-mcp/issues"
+  },
+  "author": "jkcorrea",
   "keywords": [
     "mcp",
     "gemini",
     "codebase",
-    "analyzer"
+    "analyzer",
+    "architecture",
+    "patterns",
+    "claude",
+    "ai",
+    "progressive-disclosure",
+    "tree-sitter"
   ],
   "license": "MIT",
   "engines": {
@@ -32,9 +64,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/node": "^25.1.0",
     "tsup": "^8.5.1",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

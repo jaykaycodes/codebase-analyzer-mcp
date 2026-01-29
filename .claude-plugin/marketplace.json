@@ -1,0 +1,25 @@
+{
+  "name": "jkcorrea-plugins",
+  "owner": {
+    "name": "jkcorrea",
+    "url": "https://github.com/jkcorrea"
+  },
+  "metadata": {
+    "description": "AI-powered development tools by jkcorrea",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "codebase-analyzer",
+      "description": "Multi-layer codebase analysis with Gemini AI. 4 agents, 5 commands, 3 skills for architecture analysis, pattern detection, and dataflow tracing.",
+      "version": "2.0.0",
+      "author": {
+        "name": "jkcorrea",
+        "url": "https://github.com/jkcorrea"
+      },
+      "homepage": "https://github.com/jkcorrea/codebase-analyzer-mcp",
+      "tags": ["codebase-analysis", "architecture", "patterns", "gemini", "mcp"],
+      "source": "."
+    }
+  ]
+}

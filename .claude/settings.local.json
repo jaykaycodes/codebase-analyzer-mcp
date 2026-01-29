@@ -4,7 +4,8 @@
       "mcp__codebase-analyzer__analyze_repo",
       "WebFetch(domain:github.com)",
       "mcp__plugin_compound-engineering_context7__resolve-library-id",
-      "mcp__plugin_compound-engineering_context7__query-docs"
+      "mcp__plugin_compound-engineering_context7__query-docs",
+      "WebFetch(domain:registry.npmjs.org)"
     ]
   }
 }

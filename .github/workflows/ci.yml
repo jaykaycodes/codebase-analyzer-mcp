@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build TypeScript
+        run: bun run build:ts
+
+      - name: Build binary
+        run: bun run build:bin
+
+      - name: Type check
+        run: bun run tsc --noEmit
+
+      - name: Test CLI (JS)
+        run: |
+          bun run cba capabilities
+          bun run cba analyze . -d surface -q
+
+      - name: Test CLI (Binary)
+        run: |
+          ./dist/cba capabilities
+          ./dist/cba analyze . -d surface -q
+
+  build-matrix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: darwin-arm64
+          - os: ubuntu-latest
+            target: linux-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build binary for ${{ matrix.target }}
+        run: bun build src/cli/index.ts --compile --outfile dist/cba-${{ matrix.target }}
+
+      - name: Test binary
+        run: ./dist/cba-${{ matrix.target }} capabilities
