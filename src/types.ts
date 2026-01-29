@@ -157,6 +157,8 @@ export interface AnalysisOptions {
   exclude?: string[];
   tokenBudget?: number;
   includeSemantics?: boolean;
+  /** Original source name (repo name from URL or path) */
+  sourceName?: string;
 }
 
 /**

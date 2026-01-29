@@ -5,9 +5,25 @@
  */
 
 import { z } from "zod";
+import { basename } from "path";
 import { orchestrateAnalysis } from "../../core/orchestrator.js";
 import { resolveSource } from "../../core/repo-loader.js";
 import type { AnalysisDepth } from "../../types.js";
+
+/**
+ * Extract repository name from source (GitHub URL or local path)
+ */
+function extractSourceName(source: string): string {
+  // GitHub URL patterns
+  const githubMatch = source.match(/github\.com\/([^\/]+\/[^\/]+)/);
+  if (githubMatch) {
+    // Return "owner/repo" format, removing .git suffix
+    return githubMatch[1].replace(/\.git$/, "");
+  }
+
+  // Local path - use basename
+  return basename(source) || source;
+}
 
 /**
  * Schema for analyze_repo tool
@@ -60,6 +76,9 @@ export async function executeAnalyzeRepo(input: AnalyzeRepoInput): Promise<objec
     includeSemantics = false,
   } = input;
 
+  // Extract source name before resolving (for display purposes)
+  const sourceName = extractSourceName(source);
+
   // Resolve source (local path or GitHub URL)
   const { repoPath, cleanup } = await resolveSource(source);
 
@@ -71,6 +90,7 @@ export async function executeAnalyzeRepo(input: AnalyzeRepoInput): Promise<objec
       exclude,
       tokenBudget,
       includeSemantics,
+      sourceName,
     });
 
     return result;

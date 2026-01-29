@@ -86,6 +86,7 @@ export async function orchestrateAnalysis(
   logger.progress("surface", "Phase 1: Starting surface analysis");
   const surface = await surfaceAnalysis(repoPath, {
     exclude: options.exclude,
+    sourceName: options.sourceName,
   });
   logger.stopSpinner(`Surface: ${surface.repositoryMap.fileCount} files, ${surface.identifiedModules.length} modules`);
   logger.surface(`Found ${surface.repositoryMap.languages.length} languages`, {

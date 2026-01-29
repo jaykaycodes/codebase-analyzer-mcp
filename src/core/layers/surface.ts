@@ -130,7 +130,7 @@ interface FileInfo {
  */
 export async function surfaceAnalysis(
   repoPath: string,
-  options: { exclude?: string[] } = {}
+  options: { exclude?: string[]; sourceName?: string } = {}
 ): Promise<SurfaceAnalysis> {
   const startTime = Date.now();
 
@@ -147,7 +147,7 @@ export async function surfaceAnalysis(
   const fileInfos = await gatherFileInfo(repoPath, files);
 
   // Build repository map
-  const repositoryMap = buildRepositoryMap(repoPath, fileInfos);
+  const repositoryMap = buildRepositoryMap(repoPath, fileInfos, options.sourceName);
 
   // Identify modules
   const identifiedModules = identifyModules(fileInfos);
@@ -208,8 +208,9 @@ async function gatherFileInfo(repoPath: string, files: string[]): Promise<FileIn
 /**
  * Build repository map from file info
  */
-function buildRepositoryMap(repoPath: string, files: FileInfo[]): RepositoryMap {
-  const name = basename(repoPath);
+function buildRepositoryMap(repoPath: string, files: FileInfo[], sourceName?: string): RepositoryMap {
+  // Use provided source name, or extract from path
+  const name = sourceName || basename(repoPath);
 
   // Language breakdown
   const languageCounts = new Map<string, { count: number; extensions: Set<string> }>();

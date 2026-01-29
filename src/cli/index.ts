@@ -11,10 +11,23 @@ import {
   formatQueryOutput,
   formatCompareOutput,
 } from "../core/output-formatter.js";
+import { basename } from "path";
 import { orchestrateAnalysis } from "../core/orchestrator.js";
 import { resolveSource } from "../core/repo-loader.js";
 import { logger } from "../core/logger.js";
 import type { OutputFormat, AnalysisDepth } from "../types.js";
+
+/**
+ * Extract repository name from source (GitHub URL or local path)
+ */
+function extractSourceName(source: string): string {
+  // GitHub URL patterns
+  const githubMatch = source.match(/github\.com\/([^\/]+\/[^\/]+)/);
+  if (githubMatch) {
+    return githubMatch[1].replace(/\.git$/, "");
+  }
+  return basename(source) || source;
+}
 
 const program = new Command();
 
@@ -75,6 +88,7 @@ program
       }
 
       // V2 analysis
+      const sourceName = extractSourceName(source);
       const { repoPath, cleanup } = await resolveSource(source);
 
       try {
@@ -84,6 +98,7 @@ program
           exclude: options.exclude,
           tokenBudget: parseInt(options.tokenBudget || "800000", 10),
           includeSemantics: options.semantics,
+          sourceName,
         });
 
         if (options.format === "markdown") {
