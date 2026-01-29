@@ -81,11 +81,9 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         run: bun run build:js
 
-      - name: Publish to npm
+      - name: Publish to npm (trusted publisher)
         if: steps.version.outputs.changed == 'true'
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         if: steps.version.outputs.changed == 'true'
