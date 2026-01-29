@@ -33,6 +33,9 @@
     "cli": "bun src/cli/index.ts",
     "cba": "bun src/cli/index.ts",
     "version:sync": "bun scripts/sync-version.ts",
+    "release": "npm version patch && bun run version:sync",
+    "release:minor": "npm version minor && bun run version:sync",
+    "release:major": "npm version major && bun run version:sync",
     "prepublishOnly": "bun run version:sync && bun run build:js"
   },
   "repository": {

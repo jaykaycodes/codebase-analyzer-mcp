@@ -7,9 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -27,28 +26,95 @@ jobs:
       - name: Build JS
         run: bun run build:js
 
-      - name: Build binary
-        run: bun run build:bin
-
-      - name: Test CLI (JS)
+      - name: Test CLI
         run: |
           bun run cba capabilities
           bun run cba analyze . -d surface -q
 
-      - name: Test CLI (Binary)
-        run: |
-          ./dist/cba capabilities
-          ./dist/cba analyze . -d surface -q
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    outputs:
+      released: ${{ steps.version.outputs.changed }}
+      version: ${{ steps.version.outputs.current }}
 
-  build-matrix:
-    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node (for npm publish)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Check if version changed
+        id: version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          git show HEAD~1:package.json > /tmp/old-package.json 2>/dev/null || echo '{"version":"0.0.0"}' > /tmp/old-package.json
+          PREVIOUS=$(node -p "require('/tmp/old-package.json').version")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "previous=$PREVIOUS" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed: $PREVIOUS -> $CURRENT"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged: $CURRENT"
+          fi
+
+      - name: Build JS
+        if: steps.version.outputs.changed == 'true'
+        run: bun run build:js
+
+      - name: Publish to npm
+        if: steps.version.outputs.changed == 'true'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.current }}
+          name: v${{ steps.version.outputs.current }}
+          generate_release_notes: true
+
+  build-binaries:
+    needs: release
+    if: needs.release.outputs.released == 'true'
     strategy:
       matrix:
         include:
           - os: macos-latest
-            target: darwin-arm64
+            asset_name: cba-macos-arm64
+          - os: macos-13
+            asset_name: cba-macos-x64
           - os: ubuntu-latest
-            target: linux-x64
+            asset_name: cba-linux-x64
+          - os: ubuntu-24.04-arm
+            asset_name: cba-linux-arm64
+          - os: windows-latest
+            asset_name: cba-windows-x64.exe
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -61,8 +127,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build binary for ${{ matrix.target }}
-        run: bun build src/cli/index.ts --compile --outfile dist/cba-${{ matrix.target }}
+      - name: Build binary
+        run: bun build src/cli/index.ts --compile --outfile dist/${{ matrix.asset_name }}
 
-      - name: Test binary
-        run: ./dist/cba-${{ matrix.target }} capabilities
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.release.outputs.version }}
+          files: dist/${{ matrix.asset_name }}

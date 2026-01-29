@@ -1,134 +1,23 @@
 # Codebase Analyzer MCP
 
-[![Claude Plugin](https://img.shields.io/badge/Claude-Plugin-blueviolet)](https://github.com/jaykaycodes/codebase-analyzer-mcp)
 [![npm](https://img.shields.io/npm/v/codebase-analyzer-mcp)](https://www.npmjs.com/package/codebase-analyzer-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Multi-layer codebase analysis with Gemini AI. Both an MCP server for Claude and a standalone CLI.
+Analyze any codebase with Gemini AI. Progressive disclosure keeps costs low - start with free structural analysis, drill into semantic details only when needed.
 
-**Features:**
+## Quick Start
 
-- Progressive disclosure - start cheap, drill down as needed
-- Tree-sitter structural analysis (no LLM cost)
-- Gemini semantic analysis (opt-in)
-- Pattern detection, dataflow tracing
-- Agent-optimized output
-- **Standalone binary - no Node/Bun required**
-
-## Installation
-
-### Package Manager (Recommended)
+### Claude Code Plugin
 
 ```bash
-npm install -g codebase-analyzer-mcp
-bun install -g codebase-analyzer-mcp
-pnpm install -g codebase-analyzer-mcp
-yarn add -g codebase-analyzer-mcp
+claude /plugin install https://github.com/jaykaycodes/codebase-analyzer-mcp
 ```
 
-### Standalone Binary
+Then use `/analyze`, `/patterns`, `/trace`, or `/explore` commands.
 
-Download the binary for your platform from [Releases](https://github.com/jaykaycodes/codebase-analyzer-mcp/releases):
+### MCP Server
 
-```bash
-# macOS (Apple Silicon)
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-arm64 -o cba
-chmod +x cba
-sudo mv cba /usr/local/bin/
-
-# macOS (Intel)
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-x64 -o cba
-chmod +x cba
-sudo mv cba /usr/local/bin/
-
-# Linux (x64)
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-x64 -o cba
-chmod +x cba
-sudo mv cba /usr/local/bin/
-
-# Linux (ARM64)
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-arm64 -o cba
-chmod +x cba
-sudo mv cba /usr/local/bin/
-```
-
-### From Source (with Bun)
-
-```bash
-git clone https://github.com/jaykaycodes/codebase-analyzer-mcp.git
-cd codebase-analyzer-mcp
-bun install && bun run build
-```
-
-## Configuration
-
-Set your Gemini API key (required for semantic analysis):
-
-```bash
-export GEMINI_API_KEY=your_api_key_here
-```
-
-Get a key at https://aistudio.google.com/apikey
-
-## CLI Usage
-
-```bash
-# Quick overview (surface depth - fast, free)
-cba analyze . -d surface
-
-# Standard analysis (includes structural)
-cba analyze .
-
-# Deep analysis with semantics (uses Gemini)
-cba analyze . -d deep -s
-
-# Analyze GitHub repo
-cba analyze https://github.com/user/repo
-
-# Focus on specific areas
-cba analyze . --focus src/api
-
-# Pattern detection
-cba patterns .
-cba patterns . --types singleton,factory,repository
-
-# Data flow tracing
-cba dataflow . "user login"
-cba dataflow . "payment" --to database
-
-# Show capabilities
-cba capabilities
-```
-
-### Analysis Depths
-
-| Depth      | Speed  | LLM Cost | Includes                                   |
-| ---------- | ------ | -------- | ------------------------------------------ |
-| `surface`  | Fast   | ~0       | Files, languages, entry points, modules    |
-| `standard` | Medium | Low      | + symbols, imports, complexity metrics     |
-| `deep`     | Slow   | High     | + semantic analysis, architecture insights |
-
-## MCP Server Usage
-
-Add to Claude Code settings (`~/.claude/settings.json`):
-
-### Using standalone binary (recommended)
-
-```json
-{
-  "mcpServers": {
-    "codebase-analyzer": {
-      "command": "cba",
-      "args": ["--mcp"],
-      "env": {
-        "GEMINI_API_KEY": "your_api_key"
-      }
-    }
-  }
-}
-```
-
-### Using npx (no install)
+Add to `~/.claude/settings.json`:
 
 ```json
 {
@@ -144,111 +33,93 @@ Add to Claude Code settings (`~/.claude/settings.json`):
 }
 ```
 
-### Using global npm install
+Get a Gemini API key at https://aistudio.google.com/apikey
+
+### CLI
+
+```bash
+npx codebase-analyzer-mcp analyze .                    # Standard analysis
+npx codebase-analyzer-mcp analyze . -d surface         # Fast, free overview
+npx codebase-analyzer-mcp analyze . -d deep -s         # Full semantic analysis
+npx codebase-analyzer-mcp patterns .                   # Find design patterns
+npx codebase-analyzer-mcp dataflow . "user login"      # Trace data flow
+```
+
+## What It Does
+
+| Layer | Cost | What You Get |
+|-------|------|--------------|
+| **Surface** | Free | Files, languages, entry points, modules |
+| **Structural** | Free | Symbols, imports, complexity (via tree-sitter) |
+| **Semantic** | Gemini | Architecture insights, pattern detection |
+
+Analysis results include expandable sections - you only pay for what you drill into.
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_repo` | Full analysis with progressive disclosure |
+| `expand_section` | Drill into specific sections |
+| `find_patterns` | Detect design/architecture patterns |
+| `trace_dataflow` | Trace data flow through the system |
+
+## Plugin Commands & Agents
+
+| Command | Agent | Purpose |
+|---------|-------|---------|
+| `/analyze` | `architecture-analyzer` | Full architecture analysis |
+| `/patterns` | `pattern-detective` | Find design patterns |
+| `/trace` | `dataflow-tracer` | Trace data flow |
+| `/explore` | `codebase-explorer` | Quick exploration |
+| `/compare` | - | Compare repositories |
+
+---
+
+## Alternative Installation
+
+### Global Install
 
 ```bash
 npm install -g codebase-analyzer-mcp
+# Then use: cba analyze .
 ```
 
-```json
-{
-  "mcpServers": {
-    "codebase-analyzer": {
-      "command": "cba",
-      "args": ["--mcp"],
-      "env": {
-        "GEMINI_API_KEY": "your_api_key"
-      }
-    }
-  }
-}
-```
+### Standalone Binary
 
-### MCP Tools
-
-| Tool                        | Description                               |
-| --------------------------- | ----------------------------------------- |
-| `analyze_repo`              | Full analysis with progressive disclosure |
-| `expand_section`            | Drill into specific sections              |
-| `find_patterns`             | Detect design/architecture patterns       |
-| `trace_dataflow`            | Trace data flow through the system        |
-| `get_analysis_capabilities` | List available options                    |
-
-## Output Structure
-
-```json
-{
-  "analysisId": "analysis_xxx",
-  "repositoryMap": {
-    "name": "repo-name",
-    "languages": [...],
-    "fileCount": 42,
-    "entryPoints": [...]
-  },
-  "summary": {
-    "architectureType": "serverless",
-    "primaryPatterns": ["repository", "factory"],
-    "complexity": "medium"
-  },
-  "sections": [
-    {
-      "id": "module_src_api",
-      "title": "API Module",
-      "summary": "...",
-      "canExpand": true,
-      "expansionCost": { "detail": 500, "full": 2000 }
-    }
-  ],
-  "forAgent": {
-    "quickSummary": "...",
-    "keyInsights": [...],
-    "suggestedNextSteps": [...]
-  }
-}
-```
-
-## Claude Plugin
-
-This package also works as a Claude Code plugin with agents, commands, and skills.
-
-### Install as Plugin
+No Node/Bun required. Download from [Releases](https://github.com/jaykaycodes/codebase-analyzer-mcp/releases):
 
 ```bash
-# Direct install
-claude /plugin install https://github.com/jaykaycodes/codebase-analyzer-mcp
-
-# Or add as marketplace first (if you want to browse/manage multiple plugins)
-claude /plugin marketplace add https://github.com/jaykaycodes/codebase-analyzer-mcp
-claude /plugin install codebase-analyzer
+# macOS Apple Silicon
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-arm64 -o cba
+chmod +x cba && sudo mv cba /usr/local/bin/
 ```
 
-### Plugin Commands
+<details>
+<summary>Other platforms</summary>
 
-| Command     | Description          |
-| ----------- | -------------------- |
-| `/analyze`  | Analyze a codebase   |
-| `/patterns` | Find design patterns |
-| `/trace`    | Trace data flow      |
-| `/explore`  | Quick exploration    |
-| `/compare`  | Compare repositories |
+```bash
+# macOS Intel
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-x64 -o cba
 
-### Plugin Agents
+# Linux x64
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-x64 -o cba
 
-| Agent                   | Purpose                    |
-| ----------------------- | -------------------------- |
-| `architecture-analyzer` | Full architecture analysis |
-| `pattern-detective`     | Pattern detection          |
-| `dataflow-tracer`       | Data flow tracing          |
-| `codebase-explorer`     | Quick exploration          |
+# Linux ARM64
+curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-arm64 -o cba
+```
+
+</details>
 
 ## Development
 
 ```bash
+git clone https://github.com/jaykaycodes/codebase-analyzer-mcp.git
+cd codebase-analyzer-mcp
 bun install
 bun run dev           # Watch mode
-bun run build         # Build TS + binary
-bun run build:bin:all # Build all platform binaries
-bun run cba ...       # Run CLI
+bun run build         # Build JS + binary
+bun run cba analyze . # Test CLI
 ```
 
 ## License
