@@ -1,5 +1,8 @@
 node_modules/
-dist/
+# Keep dist/*.js in git for GitHub plugin installs
+# Exclude compiled binaries (too large)
+dist/cba
+dist/cba-*
 *.log
 .env
 .env.local
