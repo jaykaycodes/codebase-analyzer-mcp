@@ -127,6 +127,18 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design.
 GEMINI_API_KEY=...  # Required for semantic analysis
 ```
 
+## Releasing
+
+Uses npm trusted publishing (OIDC) - no NPM_TOKEN secret needed.
+
+1. Bump version: `npm version patch` (or minor/major)
+2. Sync version to plugin.json: `bun run version:sync`
+3. Push with tags: `git push && git push --tags`
+
+CI automatically publishes to npm when version changes on main.
+
+**Trusted publisher config:** npm package must be linked to `jaykaycodes/codebase-analyzer-mcp` in npm settings (Settings → Publishing access → Add GitHub Actions as publisher).
+
 ## Key Learnings
 
 _This section captures learnings as we work on this repository._
