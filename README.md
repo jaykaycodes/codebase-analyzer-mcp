@@ -85,32 +85,6 @@ npm install -g codebase-analyzer-mcp
 # Then use: cba analyze .
 ```
 
-### Standalone Binary
-
-No Node/Bun required. Download from [Releases](https://github.com/jaykaycodes/codebase-analyzer-mcp/releases):
-
-```bash
-# macOS Apple Silicon
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-arm64 -o cba
-chmod +x cba && sudo mv cba /usr/local/bin/
-```
-
-<details>
-<summary>Other platforms</summary>
-
-```bash
-# macOS Intel
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-macos-x64 -o cba
-
-# Linux x64
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-x64 -o cba
-
-# Linux ARM64
-curl -L https://github.com/jaykaycodes/codebase-analyzer-mcp/releases/latest/download/cba-linux-arm64 -o cba
-```
-
-</details>
-
 ## Development
 
 ```bash
@@ -118,7 +92,7 @@ git clone https://github.com/jaykaycodes/codebase-analyzer-mcp.git
 cd codebase-analyzer-mcp
 bun install
 bun run dev           # Watch mode
-bun run build         # Build JS + binary
+bun run build:js      # Build JS
 bun run cba analyze . # Test CLI
 ```
 

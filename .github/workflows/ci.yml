@@ -38,9 +38,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    outputs:
-      released: ${{ steps.version.outputs.changed }}
-      version: ${{ steps.version.outputs.current }}
 
     steps:
       - uses: actions/checkout@v4
@@ -94,44 +91,3 @@ jobs:
           tag_name: v${{ steps.version.outputs.current }}
           name: v${{ steps.version.outputs.current }}
           generate_release_notes: true
-
-  build-binaries:
-    needs: release
-    if: needs.release.outputs.released == 'true'
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            asset_name: cba-macos-arm64
-          - os: macos-13
-            asset_name: cba-macos-x64
-          - os: ubuntu-latest
-            asset_name: cba-linux-x64
-          - os: ubuntu-24.04-arm
-            asset_name: cba-linux-arm64
-          - os: windows-latest
-            asset_name: cba-windows-x64.exe
-
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Build binary
-        run: bun build src/cli/index.ts --compile --outfile dist/${{ matrix.asset_name }}
-
-      - name: Upload to release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ needs.release.outputs.version }}
-          files: dist/${{ matrix.asset_name }}
