@@ -5,7 +5,9 @@
       "WebFetch(domain:github.com)",
       "mcp__plugin_compound-engineering_context7__resolve-library-id",
       "mcp__plugin_compound-engineering_context7__query-docs",
-      "WebFetch(domain:registry.npmjs.org)"
+      "WebFetch(domain:registry.npmjs.org)",
+      "WebFetch(domain:api.anthropic.com)",
+      "WebFetch(domain:mcp.context7.com)"
     ]
   }
 }

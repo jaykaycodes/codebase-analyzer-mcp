@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "bun run build:js",
-    "build:js": "bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && echo '#!/usr/bin/env node' | cat - dist/cli/index.js > /tmp/cba.js && mv /tmp/cba.js dist/cli/index.js",
+    "build:js": "bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && node -e \"const fs=require('fs');const c=fs.readFileSync('dist/cli/index.js','utf8');fs.writeFileSync('dist/cli/index.js','#!/usr/bin/env node\\n'+c)\"",
     "dev": "bun --watch src/cli/index.ts",
     "start": "bun dist/mcp/server.js",
     "typecheck": "tsc --noEmit",

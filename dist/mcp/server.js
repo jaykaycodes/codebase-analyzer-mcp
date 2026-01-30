@@ -70685,7 +70685,7 @@ If you cannot find the entry point, explain what you looked for in the summary a
 // package.json
 var package_default = {
   name: "codebase-analyzer-mcp",
-  version: "1.0.3",
+  version: "2.0.3",
   description: "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
   type: "module",
   main: "dist/mcp/server.js",
@@ -70704,13 +70704,8 @@ var package_default = {
     "AGENTS.md"
   ],
   scripts: {
-    build: "bun run build:js && bun run build:bin",
-    "build:js": "bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && echo '#!/usr/bin/env node' | cat - dist/cli/index.js > /tmp/cba.js && mv /tmp/cba.js dist/cli/index.js",
-    "build:bin": "bun build src/cli/index.ts --compile --outfile dist/cba",
-    "build:bin:all": "bun run build:bin:macos && bun run build:bin:linux && bun run build:bin:windows",
-    "build:bin:macos": "bun build src/cli/index.ts --compile --target=bun-darwin-arm64 --outfile dist/cba-macos-arm64 && bun build src/cli/index.ts --compile --target=bun-darwin-x64 --outfile dist/cba-macos-x64",
-    "build:bin:linux": "bun build src/cli/index.ts --compile --target=bun-linux-x64 --outfile dist/cba-linux-x64 && bun build src/cli/index.ts --compile --target=bun-linux-arm64 --outfile dist/cba-linux-arm64",
-    "build:bin:windows": "bun build src/cli/index.ts --compile --target=bun-windows-x64 --outfile dist/cba-windows-x64.exe",
+    build: "bun run build:js",
+    "build:js": `bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && node -e "const fs=require('fs');const c=fs.readFileSync('dist/cli/index.js','utf8');fs.writeFileSync('dist/cli/index.js','#!/usr/bin/env node\\n'+c)"`,
     dev: "bun --watch src/cli/index.ts",
     start: "bun dist/mcp/server.js",
     typecheck: "tsc --noEmit",

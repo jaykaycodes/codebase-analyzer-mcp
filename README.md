@@ -17,14 +17,29 @@ Then use `/analyze`, `/patterns`, `/trace`, or `/explore` commands.
 
 ### MCP Server
 
-Add to `~/.claude/settings.json`:
+Add to `~/.mcp.json` (create if it doesn't exist):
 
 ```json
 {
   "mcpServers": {
     "codebase-analyzer": {
       "command": "npx",
-      "args": ["-y", "codebase-analyzer-mcp", "--mcp"],
+      "args": ["-y", "codebase-analyzer-mcp"]
+    }
+  }
+}
+```
+
+Restart Claude Code, then use the `analyze_repo`, `find_patterns`, or `trace_dataflow` tools.
+
+**Optional:** For semantic analysis with Gemini AI, get an API key at https://aistudio.google.com/apikey and add it:
+
+```json
+{
+  "mcpServers": {
+    "codebase-analyzer": {
+      "command": "npx",
+      "args": ["-y", "codebase-analyzer-mcp"],
       "env": {
         "GEMINI_API_KEY": "your_api_key"
       }
@@ -32,8 +47,6 @@ Add to `~/.claude/settings.json`:
   }
 }
 ```
-
-Get a Gemini API key at https://aistudio.google.com/apikey
 
 ### CLI
 

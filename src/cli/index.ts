@@ -21,7 +21,7 @@ const program = new Command();
 
 program
   .name("cba")
-  .description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI\n\nUse --mcp to run as MCP server for Claude Code")
+  .description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI")
   .version(pkg.version);
 
 program
@@ -227,12 +227,17 @@ function formatAnalysisAsMarkdown(result: any): string {
   return lines.join("\n");
 }
 
-// Check for --mcp flag before parsing (runs MCP server instead of CLI)
-if (process.argv.includes("--mcp")) {
+// Determine mode: MCP server (default) or CLI
+const cliCommands = ["analyze", "patterns", "dataflow", "capabilities", "help", "-h", "--help", "-V", "--version"];
+const firstArg = process.argv[2];
+const isCliMode = firstArg && cliCommands.some(cmd => firstArg === cmd || firstArg.startsWith("-"));
+
+if (isCliMode) {
+  program.parse();
+} else {
+  // Default: run MCP server (this is an MCP package after all)
   import("../mcp/server.js").catch((err) => {
     console.error("Failed to start MCP server:", err);
     process.exit(1);
   });
-} else {
-  program.parse();
 }

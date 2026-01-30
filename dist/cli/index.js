@@ -1,4 +1,4 @@
-#\!/usr/bin/env node
+#!/usr/bin/env node
 import { createRequire } from "node:module";
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
@@ -44076,7 +44076,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "codebase-analyzer-mcp",
-    version: "1.0.3",
+    version: "2.0.3",
     description: "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
     type: "module",
     main: "dist/mcp/server.js",
@@ -44095,13 +44095,8 @@ var init_package = __esm(() => {
       "AGENTS.md"
     ],
     scripts: {
-      build: "bun run build:js && bun run build:bin",
-      "build:js": "bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && echo '#!/usr/bin/env node' | cat - dist/cli/index.js > /tmp/cba.js && mv /tmp/cba.js dist/cli/index.js",
-      "build:bin": "bun build src/cli/index.ts --compile --outfile dist/cba",
-      "build:bin:all": "bun run build:bin:macos && bun run build:bin:linux && bun run build:bin:windows",
-      "build:bin:macos": "bun build src/cli/index.ts --compile --target=bun-darwin-arm64 --outfile dist/cba-macos-arm64 && bun build src/cli/index.ts --compile --target=bun-darwin-x64 --outfile dist/cba-macos-x64",
-      "build:bin:linux": "bun build src/cli/index.ts --compile --target=bun-linux-x64 --outfile dist/cba-linux-x64 && bun build src/cli/index.ts --compile --target=bun-linux-arm64 --outfile dist/cba-linux-arm64",
-      "build:bin:windows": "bun build src/cli/index.ts --compile --target=bun-windows-x64 --outfile dist/cba-windows-x64.exe",
+      build: "bun run build:js",
+      "build:js": `bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && node -e "const fs=require('fs');const c=fs.readFileSync('dist/cli/index.js','utf8');fs.writeFileSync('dist/cli/index.js','#!/usr/bin/env node\\n'+c)"`,
       dev: "bun --watch src/cli/index.ts",
       start: "bun dist/mcp/server.js",
       typecheck: "tsc --noEmit",
@@ -73607,9 +73602,7 @@ function extractSourceName2(source) {
   return basename5(source) || source;
 }
 var program2 = new Command;
-program2.name("cba").description(`Codebase Analyzer - Multi-layer repository analysis with Gemini AI
-
-Use --mcp to run as MCP server for Claude Code`).version(package_default.version);
+program2.name("cba").description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI").version(package_default.version);
 program2.command("analyze").description("Perform architectural analysis of a repository").argument("<source>", "Local path or GitHub URL").option("-d, --depth <depth>", "Analysis depth: surface, standard, deep", "standard").option("-f, --focus <areas...>", "Specific areas to focus on").option("-e, --exclude <patterns...>", "Glob patterns to exclude").option("-t, --token-budget <tokens>", "Maximum token budget", "800000").option("-s, --semantics", "Include deep semantic analysis (uses LLM)").option("-v, --verbose", "Show detailed progress and subagent activity").option("-q, --quiet", "Only output the final result (no progress)").option("--format <format>", "Output format (json or markdown)", "json").action(async (source, options) => {
   try {
     if (options.verbose)
@@ -73752,11 +73745,14 @@ function formatAnalysisAsMarkdown(result) {
   return lines.join(`
 `);
 }
-if (process.argv.includes("--mcp")) {
+var cliCommands = ["analyze", "patterns", "dataflow", "capabilities", "help", "-h", "--help", "-V", "--version"];
+var firstArg = process.argv[2];
+var isCliMode = firstArg && cliCommands.some((cmd) => firstArg === cmd || firstArg.startsWith("-"));
+if (isCliMode) {
+  program2.parse();
+} else {
   Promise.resolve().then(() => (init_server2(), exports_server)).catch((err) => {
     console.error("Failed to start MCP server:", err);
     process.exit(1);
   });
-} else {
-  program2.parse();
 }
