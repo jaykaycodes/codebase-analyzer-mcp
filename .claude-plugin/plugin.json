@@ -1,6 +1,6 @@
 {
   "name": "codebase-analyzer",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Multi-layer codebase analysis with Gemini AI. 4 agents, 5 commands, 3 skills for architecture analysis, pattern detection, and dataflow tracing.",
   "author": {
     "name": "Jake Correa",
@@ -21,7 +21,10 @@
     "codebase-analyzer": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "codebase-analyzer-mcp"]
+      "args": [
+        "-y",
+        "codebase-analyzer-mcp"
+      ]
     }
   }
 }
