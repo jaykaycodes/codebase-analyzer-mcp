@@ -139,6 +139,8 @@ CI automatically publishes to npm when version changes on main.
 
 **Trusted publisher config:** npm package must be linked to `jaykaycodes/codebase-analyzer-mcp` in npm settings (Settings → Publishing access → Add GitHub Actions as publisher).
 
+**Requirements:** npm >= 11.5.1 (CI updates npm automatically). See [npm trusted publishing docs](https://docs.npmjs.com/trusted-publishers/).
+
 ## Key Learnings
 
 _This section captures learnings as we work on this repository._

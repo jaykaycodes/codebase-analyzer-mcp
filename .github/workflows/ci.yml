@@ -56,7 +56,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # Note: Don't use registry-url here - it creates an .npmrc that interferes with OIDC trusted publishing
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm for trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: bun install
@@ -83,13 +86,10 @@ jobs:
       - name: Debug npm config
         if: steps.version.outputs.changed == 'true'
         run: |
+          echo "=== npm version (must be >= 11.5.1 for trusted publishing) ==="
+          npm --version
           echo "=== npm config ==="
           npm config list
-          echo "=== .npmrc files ==="
-          cat ~/.npmrc 2>/dev/null || echo "No ~/.npmrc"
-          cat .npmrc 2>/dev/null || echo "No ./.npmrc"
-          echo "=== npm whoami ==="
-          npm whoami 2>&1 || echo "Not logged in (expected for OIDC)"
 
       - name: Publish to npm (trusted publisher)
         if: steps.version.outputs.changed == 'true'
