@@ -83,14 +83,6 @@ jobs:
         if: steps.version.outputs.changed == 'true'
         run: bun run build:js
 
-      - name: Debug npm config
-        if: steps.version.outputs.changed == 'true'
-        run: |
-          echo "=== npm version (must be >= 11.5.1 for trusted publishing) ==="
-          npm --version
-          echo "=== npm config ==="
-          npm config list
-
       - name: Publish to npm (trusted publisher)
         if: steps.version.outputs.changed == 'true'
         run: npm publish --provenance --access public
