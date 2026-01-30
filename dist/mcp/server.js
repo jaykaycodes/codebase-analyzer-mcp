@@ -70685,7 +70685,7 @@ If you cannot find the entry point, explain what you looked for in the summary a
 // package.json
 var package_default = {
   name: "codebase-analyzer-mcp",
-  version: "2.0.3",
+  version: "2.0.5",
   description: "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
   type: "module",
   main: "dist/mcp/server.js",
@@ -70704,19 +70704,15 @@ var package_default = {
     "AGENTS.md"
   ],
   scripts: {
-    build: "bun run build:js",
-    "build:js": `bun build src/mcp/server.ts --outfile dist/mcp/server.js --target node && bun build src/cli/index.ts --outfile dist/cli/index.js --target node && node -e "const fs=require('fs');const c=fs.readFileSync('dist/cli/index.js','utf8');fs.writeFileSync('dist/cli/index.js','#!/usr/bin/env node\\n'+c)"`,
+    build: "bun scripts/build.ts",
     dev: "bun --watch src/cli/index.ts",
     start: "bun dist/mcp/server.js",
     typecheck: "tsc --noEmit",
     test: "bun test",
     cli: "bun src/cli/index.ts",
-    cba: "bun src/cli/index.ts",
-    "version:sync": "bun scripts/sync-version.ts",
-    release: "npm version patch && bun run version:sync",
-    "release:minor": "npm version minor && bun run version:sync",
-    "release:major": "npm version major && bun run version:sync",
-    prepublishOnly: "bun run version:sync && bun run build:js"
+    version: "bun scripts/sync-version.ts && git add .",
+    postversion: "git push && git push --tags",
+    prepublishOnly: "bun run build"
   },
   repository: {
     type: "git",
