@@ -19,10 +19,9 @@
   ],
   "mcpServers": {
     "codebase-analyzer": {
-      "command": "node",
-      "args": [
-        "dist/mcp/server.js"
-      ]
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "codebase-analyzer-mcp"]
     }
   }
 }
