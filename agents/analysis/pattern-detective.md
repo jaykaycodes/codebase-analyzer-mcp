@@ -1,5 +1,5 @@
 ---
-name: pattern-detective
+name: cba:pattern-detective
 description: "Use this agent when you need to find specific design patterns, anti-patterns, or architectural patterns in a codebase. Specializes in pattern detection with confidence levels and location mapping.\n\n<example>Context: User suspects anti-patterns in code.\nuser: \"Are there any anti-patterns in this codebase?\"\nassistant: \"I'll use the pattern-detective agent to scan for anti-patterns.\"\n<commentary>Pattern detection with focus on anti-patterns is pattern-detective's specialty.</commentary></example>\n\n<example>Context: User wants to understand design decisions.\nuser: \"What design patterns are used in this authentication system?\"\nassistant: \"Let me use the pattern-detective agent to analyze patterns in the auth code.\"\n<commentary>Focused pattern analysis with area filtering.</commentary></example>"
 model: haiku
 ---

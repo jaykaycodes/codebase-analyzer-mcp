@@ -1,5 +1,5 @@
 ---
-name: codebase-explorer
+name: cba:codebase-explorer
 description: "Use this agent for open-ended codebase exploration - understanding structure, finding relevant files, and answering questions about how things work. Lighter weight than full architecture analysis.\n\n<example>Context: User exploring new codebase.\nuser: \"What's in this repo?\"\nassistant: \"I'll use the codebase-explorer agent to give you a quick overview.\"\n<commentary>Quick exploration, not deep analysis.</commentary></example>\n\n<example>Context: User looking for specific functionality.\nuser: \"Where is the email sending logic?\"\nassistant: \"Let me explore the codebase to find email-related code.\"\n<commentary>Targeted exploration for specific functionality.</commentary></example>"
 model: haiku
 ---
@@ -24,10 +24,9 @@ Extract:
 
 ### Targeted Search
 
-For "where is X?" questions:
+For "where is X?" or "how does X work?" questions:
 
-1. **Surface scan** to understand structure
-2. **Query the repo** for specific questions:
+1. **Query the repo** for AI-powered answers:
 
 ```
 mcp__codebase-analyzer__query_repo(
@@ -36,14 +35,21 @@ mcp__codebase-analyzer__query_repo(
 )
 ```
 
-### Comparison
-
-For "how does this compare to Y?":
+2. **Read relevant files** using the analysisId from the response:
 
 ```
-mcp__codebase-analyzer__compare_repos(
-  sources: ["<path1>", "<path2>"],
-  aspect: "authentication"
+mcp__codebase-analyzer__read_files(
+  analysisId: "<from query_repo result>",
+  paths: ["src/services/email.ts", "src/templates/"]
+)
+```
+
+3. **Expand sections** for deeper module understanding:
+
+```
+mcp__codebase-analyzer__expand_section(
+  analysisId: "<from query_repo result>",
+  sectionId: "module_src_services"
 )
 ```
 
@@ -95,7 +101,9 @@ mcp__codebase-analyzer__compare_repos(
 ## Guidelines
 
 **DO:**
-- Start with surface analysis (fast, cheap)
+- Start with `query_repo` for targeted questions (fast, reuses cache)
+- Use `analyze_repo` with surface depth for overviews
+- Follow up with `read_files` to examine specific code
 - Give actionable summaries, not data dumps
 - Point to specific files and line numbers
 - Suggest what to explore next

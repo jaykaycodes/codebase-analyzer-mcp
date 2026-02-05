@@ -1,5 +1,5 @@
 ---
-name: architecture-analyzer
+name: cba:architecture-analyzer
 description: "Use this agent when you need to understand a codebase's architecture, identify patterns, and get a high-level overview. This agent uses the codebase-analyzer MCP to perform multi-layer analysis with progressive disclosure - starting cheap and drilling down as needed.\n\n<example>Context: User wants to understand a new codebase.\nuser: \"Help me understand the architecture of this repo\"\nassistant: \"I'll use the architecture-analyzer agent to analyze the codebase structure and patterns.\"\n<commentary>Since the user wants architectural understanding, use architecture-analyzer to run progressive analysis.</commentary></example>\n\n<example>Context: User is evaluating a library.\nuser: \"What patterns does this library use?\"\nassistant: \"Let me use the architecture-analyzer agent to detect patterns in this codebase.\"\n<commentary>Pattern detection is a core capability of architecture-analyzer.</commentary></example>"
 model: haiku
 ---

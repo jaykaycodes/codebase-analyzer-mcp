@@ -21,7 +21,7 @@ Full architectural analysis with progressive disclosure.
 
 ```typescript
 {
-  analysisId: string;           // Use for expand_section
+  analysisId: string;           // Use for expand_section, read_files
   version: 2;
   timestamp: string;
   source: string;
@@ -176,6 +176,73 @@ Trace data flow through the system.
   recommendations: string[];
 }
 ```
+
+## read_files
+
+Read specific files from a previously analyzed repository. Uses the cached clone so you don't need to re-analyze or re-clone.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `analysisId` | string | Yes | - | From analyze_repo or query_repo result |
+| `paths` | string[] | Yes | - | Relative file paths (min 1, max 20) |
+| `maxLines` | number | No | 500 | Max lines per file (max 2000) |
+
+### Response
+
+```typescript
+{
+  analysisId: string;
+  files: Array<{
+    path: string;
+    content?: string;          // File content (if readable)
+    lineCount?: number;        // Total lines in file
+    truncated?: boolean;       // True if content was truncated
+    error?: string;            // Error message (if not readable)
+  }>;
+}
+```
+
+### Notes
+
+- Paths must be relative to the repository root
+- Path traversal (../) is blocked for security
+- Works with both local repos and GitHub clones
+- Cache expires after 1 hour — re-run analyze_repo or query_repo if expired
+
+## query_repo
+
+Ask a question about a codebase and get an AI-powered answer with relevant file references.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `source` | string | Yes | Local path or GitHub URL |
+| `question` | string | Yes | Question about the codebase |
+
+### Response
+
+```typescript
+{
+  answer: string;              // Detailed answer referencing code
+  relevantFiles: Array<{
+    path: string;              // Relative file path
+    reason: string;            // Why this file is relevant
+  }>;
+  confidence: "high" | "medium" | "low";
+  analysisId: string;          // Use for follow-up read_files
+  suggestedFollowUps: string[];
+}
+```
+
+### Notes
+
+- Reuses cached analysis when available (fast for repeated queries on same repo)
+- With `GEMINI_API_KEY`: AI-powered answer using structural analysis + file contents
+- Without `GEMINI_API_KEY`: keyword-matching fallback with pointers to relevant files
+- The `analysisId` enables follow-up `read_files` calls to examine code in detail
 
 ## get_analysis_capabilities
 

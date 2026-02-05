@@ -1,128 +1,61 @@
 ---
-name: codebase-analysis
-description: This skill teaches how to effectively analyze codebases using the codebase-analyzer MCP tools. Use when exploring new repositories, understanding architecture, detecting patterns, or tracing data flow.
+name: cba:codebase-analysis
+description: How to analyze codebases using the codebase-analyzer MCP tools. Use when exploring repositories, understanding architecture, or answering questions about code.
 ---
 
 # Codebase Analysis
 
 ## Quick Start
 
-Analyze any codebase with progressive disclosure:
-
 ```
 mcp__codebase-analyzer__analyze_repo(source: ".", depth: "standard")
 ```
 
-## Analysis Depths
+## Primary Tools
 
-| Depth | Speed | Cost | Use When |
-|-------|-------|------|----------|
-| `surface` | Fast | Free | Quick overview, file structure |
-| `standard` | Medium | Low | Understanding architecture, symbols |
-| `deep` | Slow | High | Full semantic analysis with AI |
-
-**Rule of thumb:** Start with surface, upgrade if needed.
-
-## Core Tools
-
-### 1. Analyze Repository
+### analyze_repo — Understand a codebase
 
 ```javascript
 mcp__codebase-analyzer__analyze_repo({
-  source: ".",                    // Local path or GitHub URL
-  depth: "standard",              // surface | standard | deep
-  focus: ["src/api"],             // Optional: focus areas
-  exclude: ["node_modules"],      // Optional: exclude patterns
-  tokenBudget: 800000,            // Optional: max tokens
-  includeSemantics: false         // Optional: enable AI analysis
+  source: ".",           // Local path or GitHub URL
+  depth: "standard",     // surface (fast/free) | standard (balanced) | deep (AI-powered)
+  focus: ["src/api"],    // Optional: limit to specific paths
 })
 ```
 
-**Returns:**
-- `repositoryMap`: Files, languages, structure
-- `summary`: Architecture type, patterns, complexity
-- `sections`: Expandable areas for drill-down
-- `forAgent`: Quick summary and next steps
+Returns `analysisId`, repository map, architecture summary, and expandable sections.
 
-### 2. Expand Section
-
-After analysis, drill into specific sections:
+### query_repo — Ask questions about code
 
 ```javascript
-mcp__codebase-analyzer__expand_section({
-  analysisId: "analysis_xxx",     // From analyze_repo result
-  sectionId: "module_src_api",    // Section ID to expand
-  depth: "detail"                 // detail | full
-})
-```
-
-### 3. Find Patterns
-
-Detect design and architecture patterns:
-
-```javascript
-mcp__codebase-analyzer__find_patterns({
+mcp__codebase-analyzer__query_repo({
   source: ".",
-  patternTypes: ["singleton", "factory", "repository"]  // Optional filter
+  question: "how is authentication handled?"
 })
 ```
 
-**Available patterns:** singleton, factory, observer, strategy, decorator, adapter, facade, repository, dependency-injection, event-driven, pub-sub, middleware, mvc, mvvm, clean-architecture, hexagonal, cqrs, saga
+Returns an answer with relevant files, confidence level, and follow-up suggestions. Reuses cached analysis for speed. Best with `GEMINI_API_KEY` set; falls back to keyword matching without it.
 
-### 4. Trace Dataflow
-
-Follow data through the system:
+## Example Workflow
 
 ```javascript
-mcp__codebase-analyzer__trace_dataflow({
-  source: ".",
-  from: "user login",             // Entry point
-  to: "database"                  // Optional destination
-})
+// 1. Get the big picture
+const analysis = analyze_repo({ source: ".", depth: "surface" });
+
+// 2. Ask a specific question (reuses the cached analysis)
+const answer = query_repo({ source: ".", question: "where is the API defined?" });
+
+// 3. Done — answer includes relevant files and suggested follow-ups
 ```
 
-### 5. Get Capabilities
+## Power User Tools
 
-Check what's available:
+These additional tools are available for advanced use cases. See [references/api-reference.md](./references/api-reference.md) for full documentation.
 
-```javascript
-mcp__codebase-analyzer__get_analysis_capabilities()
-```
-
-## Workflow Patterns
-
-### New Codebase Orientation
-
-1. Run surface analysis
-2. Review repository map and entry points
-3. Expand interesting modules
-4. Run pattern detection if architecture unclear
-
-### Security Review
-
-1. Trace dataflow from external inputs
-2. Check for anti-patterns
-3. Map trust boundaries
-
-### Understanding Legacy Code
-
-1. Deep analysis with semantics
-2. Pattern detection for architecture
-3. Expand each major module
-
-## Guidelines
-
-**DO:**
-- Start cheap (surface), escalate if needed
-- Use `focus` to limit scope for large repos
-- Check `expansionCost` before expanding sections
-- Use `forAgent.suggestedNextSteps`
-
-**DON'T:**
-- Run deep analysis on first request
-- Ignore token budget warnings
-- Expand all sections at once
-
-## References
-
-For detailed API documentation, see [references/api-reference.md](./references/api-reference.md).
+| Tool | What it does |
+|------|-------------|
+| `expand_section` | Drill into a specific section from `analyze_repo` results |
+| `read_files` | Read source files using an `analysisId` (no re-clone needed) |
+| `find_patterns` | Detect design patterns (singleton, factory, etc.) and anti-patterns |
+| `trace_dataflow` | Trace data flow from an entry point through the system |
+| `get_analysis_capabilities` | List supported languages, depths, and available tools |

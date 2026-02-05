@@ -1,5 +1,5 @@
 ---
-name: analyze
+name: cba:analyze
 description: Analyze a codebase with progressive disclosure
 user-invocable: true
 ---
@@ -11,7 +11,7 @@ Analyze a repository using multi-layer progressive disclosure.
 ## Usage
 
 ```
-/analyze [source] [options]
+/cba:analyze [source] [options]
 ```
 
 **Arguments:**
@@ -26,19 +26,19 @@ Analyze a repository using multi-layer progressive disclosure.
 
 ```bash
 # Analyze current directory
-/analyze
+/cba:analyze
 
 # Analyze with surface depth (fast)
-/analyze --depth surface
+/cba:analyze --depth surface
 
 # Analyze specific GitHub repo
-/analyze https://github.com/user/repo
+/cba:analyze https://github.com/user/repo
 
 # Focus on specific module
-/analyze --focus src/api
+/cba:analyze --focus src/api
 
 # Deep analysis with semantics
-/analyze --depth deep --semantics
+/cba:analyze --depth deep --semantics
 ```
 
 ## Workflow
@@ -58,7 +58,7 @@ const focus = args.focus;
 const semantics = args.semantics || false;
 
 // Use architecture-analyzer agent
-Task("architecture-analyzer", {
+Task("cba:architecture-analyzer", {
   prompt: `Analyze ${source} at ${depth} depth${focus ? `, focusing on ${focus}` : ""}${semantics ? " with semantic analysis" : ""}`
 });
 ```

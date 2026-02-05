@@ -23,8 +23,8 @@ pnpm install && pnpm build
 | Component | Count | Purpose |
 |-----------|-------|---------|
 | Agents | 4 | Specialized analysis tasks |
-| Commands | 5 | User-invocable actions |
-| Skills | 3 | Context-loaded guidance |
+| Commands | 1 | User-invocable actions |
+| Skills | 1 | Context-loaded guidance |
 | MCP Server | 1 | Tool interface for Claude |
 
 ### Agents
@@ -40,19 +40,13 @@ pnpm install && pnpm build
 
 | Command | Usage |
 |---------|-------|
-| `/analyze` | Analyze a codebase |
-| `/patterns` | Find design patterns |
-| `/trace` | Trace data flow |
-| `/explore` | Quick exploration |
-| `/compare` | Compare repositories |
+| `/cba:analyze` | Analyze a codebase |
 
 ### Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `codebase-analysis` | How to use the MCP tools |
-| `add-mcp-tool` | Guide for adding new tools |
-| `debugging-analysis` | Troubleshooting analysis issues |
+| `cba:codebase-analysis` | How to use the MCP tools |
 
 ## Architecture
 
@@ -77,7 +71,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design.
 | Tool | Purpose | Cost |
 |------|---------|------|
 | `analyze_repo` | Full analysis with expandable sections | Varies |
+| `query_repo` | Ask questions about a codebase | Medium |
 | `expand_section` | Drill into specific sections | Low |
+| `read_files` | Read source files from cached analysis | None |
 | `find_patterns` | Pattern detection | Medium |
 | `trace_dataflow` | Data flow tracing | Medium |
 | `get_analysis_capabilities` | List capabilities | None |

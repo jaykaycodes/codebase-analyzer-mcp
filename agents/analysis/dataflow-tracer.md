@@ -1,5 +1,5 @@
 ---
-name: dataflow-tracer
+name: cba:dataflow-tracer
 description: "Use this agent when you need to understand how data flows through a system - from entry points through transformations to outputs. Essential for debugging, security analysis, and understanding complex systems.\n\n<example>Context: User debugging data issue.\nuser: \"How does user input flow through the checkout process?\"\nassistant: \"I'll use the dataflow-tracer agent to trace the data path.\"\n<commentary>Tracing data from entry point through system is dataflow-tracer's specialty.</commentary></example>\n\n<example>Context: Security review.\nuser: \"Where does this API input go? I want to check for injection risks.\"\nassistant: \"Let me trace the dataflow from that API endpoint.\"\n<commentary>Security-focused dataflow tracing.</commentary></example>"
 model: haiku
 ---

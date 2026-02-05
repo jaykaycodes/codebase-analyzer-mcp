@@ -13,7 +13,7 @@ Analyze any codebase with Gemini AI. Progressive disclosure keeps costs low - st
 claude /plugin install https://github.com/jaykaycodes/codebase-analyzer-mcp
 ```
 
-Then use `/analyze`, `/patterns`, `/trace`, or `/explore` commands.
+Then use `/cba:analyze` to analyze a codebase, or just ask questions naturally.
 
 ### MCP Server
 
@@ -30,7 +30,7 @@ Add to `~/.mcp.json` (create if it doesn't exist):
 }
 ```
 
-Restart Claude Code, then use the `analyze_repo`, `find_patterns`, or `trace_dataflow` tools.
+Restart Claude Code, then use the `analyze_repo` or `query_repo` tools.
 
 **Optional:** For semantic analysis with Gemini AI, get an API key at https://aistudio.google.com/apikey and add it:
 
@@ -73,19 +73,18 @@ Analysis results include expandable sections - you only pay for what you drill i
 | Tool | Description |
 |------|-------------|
 | `analyze_repo` | Full analysis with progressive disclosure |
+| `query_repo` | Ask questions about a codebase |
 | `expand_section` | Drill into specific sections |
+| `read_files` | Read source files from a cached analysis |
 | `find_patterns` | Detect design/architecture patterns |
 | `trace_dataflow` | Trace data flow through the system |
+| `get_analysis_capabilities` | List supported languages and analysis options |
 
-## Plugin Commands & Agents
+## Plugin Command
 
-| Command | Agent | Purpose |
-|---------|-------|---------|
-| `/analyze` | `architecture-analyzer` | Full architecture analysis |
-| `/patterns` | `pattern-detective` | Find design patterns |
-| `/trace` | `dataflow-tracer` | Trace data flow |
-| `/explore` | `codebase-explorer` | Quick exploration |
-| `/compare` | - | Compare repositories |
+```
+/cba:analyze [source] [--depth surface|standard|deep] [--focus <paths>]
+```
 
 ---
 
