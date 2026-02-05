@@ -51,11 +51,12 @@ Restart Claude Code, then use the `analyze_repo` or `query_repo` tools.
 ### CLI
 
 ```bash
-npx codebase-analyzer-mcp analyze .                    # Standard analysis
-npx codebase-analyzer-mcp analyze . -d surface         # Fast, free overview
-npx codebase-analyzer-mcp analyze . -d deep -s         # Full semantic analysis
-npx codebase-analyzer-mcp patterns .                   # Find design patterns
-npx codebase-analyzer-mcp dataflow . "user login"      # Trace data flow
+npx codebase-analyzer-mcp analyze .                              # Standard analysis
+npx codebase-analyzer-mcp analyze . -d surface                   # Fast, free overview
+npx codebase-analyzer-mcp analyze . -d deep -s                   # Full semantic analysis
+npx codebase-analyzer-mcp query . "how is auth handled?"         # Ask a question
+npx codebase-analyzer-mcp patterns .                             # Find design patterns
+npx codebase-analyzer-mcp dataflow . "user login"                # Trace data flow
 ```
 
 ## What It Does
@@ -80,11 +81,24 @@ Analysis results include expandable sections - you only pay for what you drill i
 | `trace_dataflow` | Trace data flow through the system |
 | `get_analysis_capabilities` | List supported languages and analysis options |
 
-## Plugin Command
+## Plugin
+
+### Command
 
 ```
 /cba:analyze [source] [--depth surface|standard|deep] [--focus <paths>]
 ```
+
+### Agents
+
+| Agent | Purpose |
+|-------|---------|
+| `architecture-analyzer` | Full codebase architecture analysis |
+| `pattern-detective` | Design/anti-pattern detection |
+| `dataflow-tracer` | Data flow tracing through systems |
+| `codebase-explorer` | Quick exploration and Q&A |
+
+Agents are routed automatically based on your question — just ask naturally.
 
 ---
 
@@ -104,7 +118,7 @@ git clone https://github.com/jaykaycodes/codebase-analyzer-mcp.git
 cd codebase-analyzer-mcp
 bun install
 bun run dev           # Watch mode
-bun run build:js      # Build JS
+bun run build         # Build
 bun run cba analyze . # Test CLI
 ```
 
