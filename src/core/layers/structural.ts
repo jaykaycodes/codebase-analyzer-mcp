@@ -160,6 +160,27 @@ export async function structuralAnalysis(
 
   for (const file of files) {
     const ext = extname(file.path).toLowerCase();
+
+    // Handle Markdown files
+    if (ext === ".md" || ext === ".mdx") {
+      const mdSymbols = analyzeMarkdownFile(file.path, file.content);
+      symbols.push(...mdSymbols);
+      const lines = file.content.split("\n");
+      totalLoc += lines.filter((l) => l.trim()).length;
+      continue;
+    }
+
+    // Handle Shell files
+    if (ext === ".sh" || ext === ".bash" || ext === ".zsh") {
+      const shAnalysis = analyzeShellFile(file.path, file.content);
+      symbols.push(...shAnalysis.symbols);
+      imports.push(...shAnalysis.imports);
+      const lines = file.content.split("\n");
+      totalLoc += lines.filter((l) => l.trim() && !l.trim().startsWith("#")).length;
+      totalFunctions += shAnalysis.symbols.filter((s) => s.type === "function").length;
+      continue;
+    }
+
     const config = getLanguageConfig(ext);
 
     if (!config) {
@@ -357,6 +378,108 @@ async function analyzeFileWithRegex(
   }
 
   return { symbols, imports, exports };
+}
+
+/**
+ * Analyze a Markdown file to extract headings, frontmatter, and cross-references
+ */
+function analyzeMarkdownFile(
+  filePath: string,
+  content: string
+): ExtractedSymbol[] {
+  const symbols: ExtractedSymbol[] = [];
+  const lines = content.split("\n");
+
+  // Extract YAML frontmatter keys
+  if (lines[0]?.trim() === "---") {
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === "---") break;
+      const keyMatch = lines[i].match(/^(\w[\w-]*):\s/);
+      if (keyMatch) {
+        symbols.push({
+          name: `frontmatter:${keyMatch[1]}`,
+          type: "variable",
+          file: filePath,
+          line: i + 1,
+          exported: false,
+        });
+      }
+    }
+  }
+
+  // Extract headings (H1 and H2 become symbols)
+  for (let i = 0; i < lines.length; i++) {
+    const headingMatch = lines[i].match(/^(#{1,2})\s+(.+)/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      symbols.push({
+        name: headingMatch[2].trim(),
+        type: level === 1 ? "class" : "function",
+        file: filePath,
+        line: i + 1,
+        exported: false,
+      });
+    }
+  }
+
+  return symbols;
+}
+
+/**
+ * Analyze a Shell script to extract functions, constants, and source imports
+ */
+function analyzeShellFile(
+  filePath: string,
+  content: string
+): { symbols: ExtractedSymbol[]; imports: ImportRelation[] } {
+  const symbols: ExtractedSymbol[] = [];
+  const imports: ImportRelation[] = [];
+  const lines = content.split("\n");
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Function definitions: "function name {" or "name() {"
+    const funcMatch = line.match(/^(?:function\s+)?(\w+)\s*\(\)\s*\{/) ||
+      line.match(/^function\s+(\w+)\s*\{/);
+    if (funcMatch) {
+      symbols.push({
+        name: funcMatch[1],
+        type: "function",
+        file: filePath,
+        line: i + 1,
+        exported: false,
+      });
+      continue;
+    }
+
+    // Uppercase variable assignments (likely constants)
+    const constMatch = line.match(/^([A-Z][A-Z0-9_]+)=/);
+    if (constMatch) {
+      symbols.push({
+        name: constMatch[1],
+        type: "constant",
+        file: filePath,
+        line: i + 1,
+        exported: false,
+      });
+      continue;
+    }
+
+    // Source imports: source "file" / . "file"
+    const sourceMatch = line.match(/^(?:source|\.) +["']?([^"'\s]+)["']?/);
+    if (sourceMatch) {
+      imports.push({
+        from: filePath,
+        to: sourceMatch[1],
+        importedNames: [],
+        isDefault: false,
+        isType: false,
+      });
+    }
+  }
+
+  return { symbols, imports };
 }
 
 /**

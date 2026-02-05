@@ -149,6 +149,12 @@ export async function surfaceAnalysis(
   // Build repository map
   const repositoryMap = buildRepositoryMap(repoPath, fileInfos, options.sourceName);
 
+  // Read actual README content
+  const readmeContent = await readReadmeContent(repoPath, fileInfos);
+  if (readmeContent) {
+    repositoryMap.readme = readmeContent.slice(0, 5000);
+  }
+
   // Identify modules
   const identifiedModules = identifyModules(fileInfos);
 
@@ -249,9 +255,6 @@ function buildRepositoryMap(repoPath: string, files: FileInfo[], sourceName?: st
   // Build directory structure
   const structure = buildDirectoryTree(files);
 
-  // Extract README
-  const readme = extractReadme(repoPath, files);
-
   return {
     name,
     languages,
@@ -260,7 +263,6 @@ function buildRepositoryMap(repoPath: string, files: FileInfo[], sourceName?: st
     estimatedTokens,
     entryPoints,
     structure,
-    readme,
   };
 }
 
@@ -370,30 +372,6 @@ function buildDirectoryTree(files: FileInfo[]): DirectoryNode {
   };
 
   return collapseTree(root);
-}
-
-/**
- * Extract README content
- */
-function extractReadme(repoPath: string, files: FileInfo[]): string | undefined {
-  const readmeFile = files.find(
-    (f) =>
-      f.relativePath.toLowerCase() === "readme.md" ||
-      f.relativePath.toLowerCase() === "readme"
-  );
-
-  if (readmeFile && readmeFile.size < 50000) {
-    // Don't read huge READMEs synchronously
-    try {
-      // This will be read async in the actual implementation
-      // For now, we just note it exists
-      return `README found at ${readmeFile.relativePath}`;
-    } catch {
-      return undefined;
-    }
-  }
-
-  return undefined;
 }
 
 /**

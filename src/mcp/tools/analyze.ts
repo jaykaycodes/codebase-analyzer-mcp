@@ -84,6 +84,7 @@ export async function executeAnalyzeRepo(input: AnalyzeRepoInput): Promise<objec
 
   try {
     // Run orchestrated analysis
+    // Cleanup is deferred to cache eviction so read_files can access the clone
     const result = await orchestrateAnalysis(repoPath, {
       depth,
       focus,
@@ -91,13 +92,15 @@ export async function executeAnalyzeRepo(input: AnalyzeRepoInput): Promise<objec
       tokenBudget,
       includeSemantics,
       sourceName,
+      cleanup,
     });
 
     return result;
-  } finally {
-    // Clean up temp directory if it was a GitHub clone
+  } catch (error) {
+    // Clean up on error since result won't be cached
     if (cleanup) {
       await cleanup();
     }
+    throw error;
   }
 }

@@ -56,7 +56,7 @@ export function buildAnalysisResult(
   const sections = buildExpandableSections(surface, structural, semantic);
 
   // Build agent digest
-  const forAgent = buildAgentDigest(surface, summary, sections);
+  const forAgent = buildAgentDigest(analysisId, surface, summary, sections);
 
   // Calculate total token cost
   const tokenCost = estimateTokens({
@@ -148,13 +148,16 @@ function buildExpandableSections(
   // Module sections
   for (const module of surface.identifiedModules.slice(0, 10)) {
     const structuralData = structural.find((s) => s.modulePath === module.path);
+    const isDocModule = module.primaryLanguage === "Markdown" || module.primaryLanguage === "MDX";
 
     const section: ExpandableSection = {
       id: `module_${module.path.replace(/[^a-zA-Z0-9]/g, "_")}`,
       title: `Module: ${module.name}`,
       type: "module",
-      summary: `${module.type} module with ${module.fileCount} files in ${module.primaryLanguage}`,
-      canExpand: !!structuralData,
+      summary: isDocModule
+        ? `Documentation module with ${module.fileCount} files`
+        : `${module.type} module with ${module.fileCount} files in ${module.primaryLanguage}`,
+      canExpand: !!(structuralData || isDocModule),
       expansionCost: {
         detail: structuralData ? estimateTokens(structuralData.symbols.slice(0, 20)) : 0,
         full: structuralData ? estimateTokens(structuralData) : 0,
@@ -162,12 +165,25 @@ function buildExpandableSections(
     };
 
     if (structuralData) {
-      section.detail = {
-        exports: structuralData.exports,
-        complexity: structuralData.complexity,
-        symbolCount: structuralData.symbols.length,
-        importCount: structuralData.imports.length,
-      };
+      if (isDocModule) {
+        // For doc modules, show headings instead of empty symbol counts
+        const headings = structuralData.symbols
+          .filter((s) => s.type === "class" || s.type === "function")
+          .slice(0, 20)
+          .map((s) => ({ title: s.name, file: s.file, line: s.line }));
+        section.detail = {
+          type: "documentation",
+          headings,
+          fileCount: module.fileCount,
+        };
+      } else {
+        section.detail = {
+          exports: structuralData.exports,
+          complexity: structuralData.complexity,
+          symbolCount: structuralData.symbols.length,
+          importCount: structuralData.imports.length,
+        };
+      }
     }
 
     sections.push(section);
@@ -244,6 +260,7 @@ function buildExpandableSections(
  * Build agent-optimized digest
  */
 function buildAgentDigest(
+  analysisId: string,
   surface: SurfaceAnalysis,
   summary: AnalysisSummary,
   sections: ExpandableSection[]
@@ -305,6 +322,11 @@ function buildAgentDigest(
       );
     }
   }
+
+  // Suggest read_files for deeper exploration
+  suggestedNextSteps.push(
+    `Use read_files with analysisId "${analysisId}" to read specific files from the repository`
+  );
 
   return {
     quickSummary,

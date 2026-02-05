@@ -32,6 +32,8 @@ interface AnalysisCacheData {
   surface: SurfaceAnalysis;
   structural: StructuralAnalysis[];
   semantic: SemanticAnalysis | null;
+  repoPath?: string;
+  cleanup?: () => Promise<void>;
 }
 
 class AnalysisCache {
@@ -95,6 +97,7 @@ class AnalysisCache {
 
     // Check if expired
     if (Date.now() > entry.expiresAt) {
+      entry.value.cleanup?.().catch(() => {});
       this.cache.delete(key);
       return null;
     }
@@ -110,6 +113,7 @@ class AnalysisCache {
       if (entry.value.result.analysisId === analysisId) {
         // Check if expired
         if (Date.now() > entry.expiresAt) {
+          entry.value.cleanup?.().catch(() => {});
           this.cache.delete(entry.key);
           return null;
         }
@@ -144,6 +148,8 @@ class AnalysisCache {
    */
   invalidate(source: string, commitHash?: string): boolean {
     const key = this.generateKey(source, commitHash);
+    const entry = this.cache.get(key);
+    entry?.value.cleanup?.().catch(() => {});
     return this.cache.delete(key);
   }
 
@@ -156,6 +162,7 @@ class AnalysisCache {
 
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiresAt) {
+        entry.value.cleanup?.().catch(() => {});
         this.cache.delete(key);
         cleared++;
       }
@@ -168,6 +175,9 @@ class AnalysisCache {
    * Clear entire cache
    */
   clear(): void {
+    for (const entry of this.cache.values()) {
+      entry.value.cleanup?.().catch(() => {});
+    }
     this.cache.clear();
   }
 
@@ -211,6 +221,8 @@ class AnalysisCache {
     }
 
     if (oldestKey) {
+      const entry = this.cache.get(oldestKey);
+      entry?.value.cleanup?.().catch(() => {});
       this.cache.delete(oldestKey);
     }
   }
@@ -218,6 +230,11 @@ class AnalysisCache {
 
 // Singleton instance
 export const analysisCache = new AnalysisCache();
+
+// Clean up all clones on process exit
+process.on("beforeExit", () => {
+  analysisCache.clear();
+});
 
 // Export class for testing
 export { AnalysisCache };

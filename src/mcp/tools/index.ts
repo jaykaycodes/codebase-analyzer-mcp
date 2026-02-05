@@ -36,3 +36,15 @@ export {
   executeTraceDataflow,
   type TraceDataflowInput,
 } from "./dataflow.js";
+
+export {
+  readFilesSchema,
+  executeReadFiles,
+  type ReadFilesInput,
+} from "./read-files.js";
+
+export {
+  queryRepoSchema,
+  executeQueryRepo,
+  type QueryRepoInput,
+} from "./query.js";

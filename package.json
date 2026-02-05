@@ -4,6 +4,7 @@
   "description": "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
   "type": "module",
   "main": "dist/mcp/server.js",
+  "packageManager": "bun@1.3.8",
   "bin": {
     "cba": "dist/cli/index.js",
     "codebase-analyzer": "dist/cli/index.js"

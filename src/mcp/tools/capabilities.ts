@@ -72,19 +72,14 @@ export function getCapabilities(): CapabilitiesResponse {
         parameters: ["source", "from", "to"],
       },
       {
-        name: "extract_feature",
-        description: "Analyze how a specific feature is implemented",
-        parameters: ["source", "feature"],
+        name: "read_files",
+        description: "Read specific files from a previously analyzed repository",
+        parameters: ["analysisId", "paths", "maxLines"],
       },
       {
         name: "query_repo",
-        description: "Ask questions about the codebase",
+        description: "Ask a question about a codebase and get an AI-powered answer with relevant files",
         parameters: ["source", "question"],
-      },
-      {
-        name: "compare_repos",
-        description: "Compare how repositories approach the same problem",
-        parameters: ["sources", "aspect"],
       },
     ],
     models: {

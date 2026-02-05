@@ -12,6 +12,10 @@ import {
   executeFindPatterns,
   traceDataflowSchema,
   executeTraceDataflow,
+  readFilesSchema,
+  executeReadFiles,
+  queryRepoSchema,
+  executeQueryRepo,
 } from "./tools/index.js";
 import pkg from "../../package.json";
 
@@ -198,6 +202,80 @@ server.tool(
           {
             type: "text" as const,
             text: `Error tracing dataflow: ${message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "read_files",
+  "Read specific files from a previously analyzed repository. Use the analysisId from analyze_repo to access files without re-cloning.",
+  {
+    analysisId: readFilesSchema.analysisId,
+    paths: readFilesSchema.paths,
+    maxLines: readFilesSchema.maxLines,
+  },
+  async ({ analysisId, paths, maxLines }) => {
+    try {
+      const result = await executeReadFiles({
+        analysisId,
+        paths,
+        maxLines,
+      });
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error reading files: ${message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+server.tool(
+  "query_repo",
+  "Ask a question about a codebase and get an AI-powered answer with relevant file references. Uses cached analysis when available. Works best with GEMINI_API_KEY set, falls back to keyword matching without it.",
+  {
+    source: queryRepoSchema.source,
+    question: queryRepoSchema.question,
+  },
+  async ({ source, question }) => {
+    try {
+      const result = await executeQueryRepo({
+        source,
+        question,
+      });
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Error querying repository: ${message}`,
           },
         ],
         isError: true,

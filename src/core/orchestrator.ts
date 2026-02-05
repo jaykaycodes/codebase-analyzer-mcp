@@ -119,6 +119,17 @@ export async function orchestrateAnalysis(
       Date.now() - startTime
     );
     result.warnings = warnings.length > 0 ? warnings : undefined;
+
+    // Cache so read_files and expand_section work
+    analysisCache.set(repoPath, {
+      result,
+      surface,
+      structural: [],
+      semantic: null,
+      repoPath,
+      cleanup: options.cleanup,
+    }, undefined, depth);
+
     return result;
   }
 
@@ -259,12 +270,14 @@ export async function orchestrateAnalysis(
     result.partialFailures = partialFailures;
   }
 
-  // Cache result for expand_section
+  // Cache result for expand_section and read_files
   analysisCache.set(repoPath, {
     result,
     surface,
     structural,
     semantic,
+    repoPath,
+    cleanup: options.cleanup,
   }, undefined, depth);
 
   state.phase = "complete";

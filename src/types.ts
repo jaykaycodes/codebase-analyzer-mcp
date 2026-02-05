@@ -59,6 +59,8 @@ export interface AnalysisOptions {
   includeSemantics?: boolean;
   /** Original source name (repo name from URL or path) */
   sourceName?: string;
+  /** Cleanup function for temporary clones (deferred to cache eviction) */
+  cleanup?: () => Promise<void>;
 }
 
 /**

@@ -7746,6 +7746,10 @@ async function surfaceAnalysis(repoPath, options = {}) {
   });
   const fileInfos = await gatherFileInfo(repoPath, files);
   const repositoryMap = buildRepositoryMap(repoPath, fileInfos, options.sourceName);
+  const readmeContent = await readReadmeContent(repoPath, fileInfos);
+  if (readmeContent) {
+    repositoryMap.readme = readmeContent.slice(0, 5000);
+  }
   const identifiedModules = identifyModules(fileInfos);
   const complexity = calculateComplexity(fileInfos, identifiedModules);
   const estimatedAnalysisTime = estimateAnalysisTimes(fileInfos, complexity);
@@ -7809,7 +7813,6 @@ function buildRepositoryMap(repoPath, files, sourceName) {
   const estimatedTokens = Math.ceil(totalSize / 4);
   const entryPoints = findEntryPoints(files);
   const structure = buildDirectoryTree(files);
-  const readme = extractReadme(repoPath, files);
   return {
     name,
     languages,
@@ -7817,8 +7820,7 @@ function buildRepositoryMap(repoPath, files, sourceName) {
     totalSize,
     estimatedTokens,
     entryPoints,
-    structure,
-    readme
+    structure
   };
 }
 function findEntryPoints(files) {
@@ -7894,17 +7896,6 @@ function buildDirectoryTree(files) {
   };
   return collapseTree(root);
 }
-function extractReadme(repoPath, files) {
-  const readmeFile = files.find((f) => f.relativePath.toLowerCase() === "readme.md" || f.relativePath.toLowerCase() === "readme");
-  if (readmeFile && readmeFile.size < 50000) {
-    try {
-      return `README found at ${readmeFile.relativePath}`;
-    } catch {
-      return;
-    }
-  }
-  return;
-}
 function identifyModules(files) {
   const modules = new Map;
   for (const file of files) {
@@ -7976,6 +7967,18 @@ function estimateAnalysisTimes(files, complexity) {
     structural: Math.round(structuralTime),
     semantic: Math.round(semanticTime)
   };
+}
+async function readReadmeContent(repoPath, files) {
+  const readmeFile = files.find((f) => f.relativePath.toLowerCase() === "readme.md" || f.relativePath.toLowerCase() === "readme");
+  if (readmeFile && readmeFile.size < 50000) {
+    try {
+      const content = await readFile(join(repoPath, readmeFile.relativePath), "utf-8");
+      return content;
+    } catch {
+      return;
+    }
+  }
+  return;
 }
 var LANGUAGE_MAP, ENTRY_POINT_PATTERNS, MODULE_TYPE_PATTERNS;
 var init_surface = __esm(() => {
@@ -8081,6 +8084,24 @@ async function structuralAnalysis(module, files) {
   let totalClasses = 0;
   for (const file of files) {
     const ext2 = extname2(file.path).toLowerCase();
+    if (ext2 === ".md" || ext2 === ".mdx") {
+      const mdSymbols = analyzeMarkdownFile(file.path, file.content);
+      symbols.push(...mdSymbols);
+      const lines2 = file.content.split(`
+`);
+      totalLoc += lines2.filter((l) => l.trim()).length;
+      continue;
+    }
+    if (ext2 === ".sh" || ext2 === ".bash" || ext2 === ".zsh") {
+      const shAnalysis = analyzeShellFile(file.path, file.content);
+      symbols.push(...shAnalysis.symbols);
+      imports.push(...shAnalysis.imports);
+      const lines2 = file.content.split(`
+`);
+      totalLoc += lines2.filter((l) => l.trim() && !l.trim().startsWith("#")).length;
+      totalFunctions += shAnalysis.symbols.filter((s) => s.type === "function").length;
+      continue;
+    }
     const config = getLanguageConfig(ext2);
     if (!config) {
       continue;
@@ -8224,6 +8245,83 @@ async function analyzeFileWithRegex(filePath, content, config) {
     }
   }
   return { symbols, imports, exports };
+}
+function analyzeMarkdownFile(filePath, content) {
+  const symbols = [];
+  const lines = content.split(`
+`);
+  if (lines[0]?.trim() === "---") {
+    for (let i = 1;i < lines.length; i++) {
+      if (lines[i].trim() === "---")
+        break;
+      const keyMatch = lines[i].match(/^(\w[\w-]*):\s/);
+      if (keyMatch) {
+        symbols.push({
+          name: `frontmatter:${keyMatch[1]}`,
+          type: "variable",
+          file: filePath,
+          line: i + 1,
+          exported: false
+        });
+      }
+    }
+  }
+  for (let i = 0;i < lines.length; i++) {
+    const headingMatch = lines[i].match(/^(#{1,2})\s+(.+)/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      symbols.push({
+        name: headingMatch[2].trim(),
+        type: level === 1 ? "class" : "function",
+        file: filePath,
+        line: i + 1,
+        exported: false
+      });
+    }
+  }
+  return symbols;
+}
+function analyzeShellFile(filePath, content) {
+  const symbols = [];
+  const imports = [];
+  const lines = content.split(`
+`);
+  for (let i = 0;i < lines.length; i++) {
+    const line = lines[i];
+    const funcMatch = line.match(/^(?:function\s+)?(\w+)\s*\(\)\s*\{/) || line.match(/^function\s+(\w+)\s*\{/);
+    if (funcMatch) {
+      symbols.push({
+        name: funcMatch[1],
+        type: "function",
+        file: filePath,
+        line: i + 1,
+        exported: false
+      });
+      continue;
+    }
+    const constMatch = line.match(/^([A-Z][A-Z0-9_]+)=/);
+    if (constMatch) {
+      symbols.push({
+        name: constMatch[1],
+        type: "constant",
+        file: filePath,
+        line: i + 1,
+        exported: false
+      });
+      continue;
+    }
+    const sourceMatch = line.match(/^(?:source|\.) +["']?([^"'\s]+)["']?/);
+    if (sourceMatch) {
+      imports.push({
+        from: filePath,
+        to: sourceMatch[1],
+        importedNames: [],
+        isDefault: false,
+        isType: false
+      });
+    }
+  }
+  return { symbols, imports };
 }
 function getLineNumber(content, index) {
   return content.slice(0, index).split(`
@@ -43247,6 +43345,7 @@ class AnalysisCache {
       return null;
     }
     if (Date.now() > entry.expiresAt) {
+      entry.value.cleanup?.().catch(() => {});
       this.cache.delete(key);
       return null;
     }
@@ -43256,6 +43355,7 @@ class AnalysisCache {
     for (const entry of this.cache.values()) {
       if (entry.value.result.analysisId === analysisId) {
         if (Date.now() > entry.expiresAt) {
+          entry.value.cleanup?.().catch(() => {});
           this.cache.delete(entry.key);
           return null;
         }
@@ -43278,6 +43378,8 @@ class AnalysisCache {
   }
   invalidate(source, commitHash) {
     const key = this.generateKey(source, commitHash);
+    const entry = this.cache.get(key);
+    entry?.value.cleanup?.().catch(() => {});
     return this.cache.delete(key);
   }
   clearExpired() {
@@ -43285,6 +43387,7 @@ class AnalysisCache {
     let cleared = 0;
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiresAt) {
+        entry.value.cleanup?.().catch(() => {});
         this.cache.delete(key);
         cleared++;
       }
@@ -43292,6 +43395,9 @@ class AnalysisCache {
     return cleared;
   }
   clear() {
+    for (const entry of this.cache.values()) {
+      entry.value.cleanup?.().catch(() => {});
+    }
     this.cache.clear();
   }
   stats() {
@@ -43318,6 +43424,8 @@ class AnalysisCache {
       }
     }
     if (oldestKey) {
+      const entry = this.cache.get(oldestKey);
+      entry?.value.cleanup?.().catch(() => {});
       this.cache.delete(oldestKey);
     }
   }
@@ -43326,6 +43434,9 @@ var DEFAULT_TTL_MS, MAX_CACHE_ENTRIES = 50, analysisCache;
 var init_cache = __esm(() => {
   DEFAULT_TTL_MS = 60 * 60 * 1000;
   analysisCache = new AnalysisCache;
+  process.on("beforeExit", () => {
+    analysisCache.clear();
+  });
 });
 
 // src/core/disclosure.ts
@@ -43347,7 +43458,7 @@ function estimateTokens(obj) {
 function buildAnalysisResult(analysisId, source, depth, surface, structural, semantic, durationMs) {
   const summary = buildSummary(surface, structural, semantic);
   const sections = buildExpandableSections(surface, structural, semantic);
-  const forAgent = buildAgentDigest(surface, summary, sections);
+  const forAgent = buildAgentDigest(analysisId, surface, summary, sections);
   const tokenCost = estimateTokens({
     repositoryMap: surface.repositoryMap,
     summary,
@@ -43404,24 +43515,34 @@ function buildExpandableSections(surface, structural, semantic) {
   const sections = [];
   for (const module of surface.identifiedModules.slice(0, 10)) {
     const structuralData = structural.find((s2) => s2.modulePath === module.path);
+    const isDocModule = module.primaryLanguage === "Markdown" || module.primaryLanguage === "MDX";
     const section = {
       id: `module_${module.path.replace(/[^a-zA-Z0-9]/g, "_")}`,
       title: `Module: ${module.name}`,
       type: "module",
-      summary: `${module.type} module with ${module.fileCount} files in ${module.primaryLanguage}`,
-      canExpand: !!structuralData,
+      summary: isDocModule ? `Documentation module with ${module.fileCount} files` : `${module.type} module with ${module.fileCount} files in ${module.primaryLanguage}`,
+      canExpand: !!(structuralData || isDocModule),
       expansionCost: {
         detail: structuralData ? estimateTokens(structuralData.symbols.slice(0, 20)) : 0,
         full: structuralData ? estimateTokens(structuralData) : 0
       }
     };
     if (structuralData) {
-      section.detail = {
-        exports: structuralData.exports,
-        complexity: structuralData.complexity,
-        symbolCount: structuralData.symbols.length,
-        importCount: structuralData.imports.length
-      };
+      if (isDocModule) {
+        const headings = structuralData.symbols.filter((s2) => s2.type === "class" || s2.type === "function").slice(0, 20).map((s2) => ({ title: s2.name, file: s2.file, line: s2.line }));
+        section.detail = {
+          type: "documentation",
+          headings,
+          fileCount: module.fileCount
+        };
+      } else {
+        section.detail = {
+          exports: structuralData.exports,
+          complexity: structuralData.complexity,
+          symbolCount: structuralData.symbols.length,
+          importCount: structuralData.imports.length
+        };
+      }
     }
     sections.push(section);
   }
@@ -43485,7 +43606,7 @@ function buildExpandableSections(surface, structural, semantic) {
   }
   return sections;
 }
-function buildAgentDigest(surface, summary, sections) {
+function buildAgentDigest(analysisId, surface, summary, sections) {
   const { repositoryMap, complexity } = surface;
   const quickSummary = `${repositoryMap.name} is a ${summary.complexity} complexity ${summary.architectureType} codebase with ${repositoryMap.fileCount} files primarily in ${repositoryMap.languages[0]?.language || "mixed languages"}. ${summary.primaryPatterns.length > 0 ? `Key patterns include ${summary.primaryPatterns.slice(0, 3).join(", ")}.` : ""}`;
   const keyInsights = [];
@@ -43515,6 +43636,7 @@ function buildAgentDigest(surface, summary, sections) {
       suggestedNextSteps.push(`Focus on core modules: ${coreModules.map((m2) => m2.name).join(", ")}`);
     }
   }
+  suggestedNextSteps.push(`Use read_files with analysisId "${analysisId}" to read specific files from the repository`);
   return {
     quickSummary,
     keyInsights,
@@ -43804,6 +43926,14 @@ async function orchestrateAnalysis(repoPath, options = {}) {
     logger.orchestrator("Surface-only mode, skipping deeper analysis");
     const result2 = buildAnalysisResult(analysisId, repoPath, depth, surface, [], null, Date.now() - startTime);
     result2.warnings = warnings.length > 0 ? warnings : undefined;
+    analysisCache.set(repoPath, {
+      result: result2,
+      surface,
+      structural: [],
+      semantic: null,
+      repoPath,
+      cleanup: options.cleanup
+    }, undefined, depth);
     return result2;
   }
   logger.progress("structural", "Phase 2: Starting structural analysis");
@@ -43890,7 +44020,9 @@ async function orchestrateAnalysis(repoPath, options = {}) {
     result,
     surface,
     structural,
-    semantic
+    semantic,
+    repoPath,
+    cleanup: options.cleanup
   }, undefined, depth);
   state.phase = "complete";
   logger.orchestrator(`Analysis complete`, {
@@ -44076,10 +44208,11 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "codebase-analyzer-mcp",
-    version: "2.0.5",
+    version: "2.0.6",
     description: "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
     type: "module",
     main: "dist/mcp/server.js",
+    packageManager: "bun@1.3.8",
     bin: {
       cba: "dist/cli/index.js",
       "codebase-analyzer": "dist/cli/index.js"
@@ -44102,7 +44235,7 @@ var init_package = __esm(() => {
       test: "bun test",
       cli: "bun src/cli/index.ts",
       version: "bun scripts/sync-version.ts && git add .",
-      postversion: "git push && git push --tags",
+      postversion: "git push --follow-tags",
       prepublishOnly: "bun run build"
     },
     repository: {
@@ -58238,6 +58371,207 @@ var init_dataflow = __esm(() => {
   };
 });
 
+// src/mcp/tools/query.ts
+var exports_query = {};
+__export(exports_query, {
+  queryRepoSchema: () => queryRepoSchema,
+  executeQueryRepo: () => executeQueryRepo
+});
+import { basename as basename4, join as join6 } from "path";
+import { readFile as readFile6 } from "fs/promises";
+function extractSourceName(source) {
+  const githubMatch = source.match(/github\.com\/([^\/]+\/[^\/]+)/);
+  if (githubMatch) {
+    return githubMatch[1].replace(/\.git$/, "");
+  }
+  return basename4(source) || source;
+}
+function scoreFileRelevance(filePath, symbols, question) {
+  const q = question.toLowerCase();
+  const words = q.split(/\s+/).filter((w) => w.length > 2);
+  let score = 0;
+  const pathLower = filePath.toLowerCase();
+  for (const word of words) {
+    if (pathLower.includes(word))
+      score += 3;
+  }
+  for (const sym of symbols) {
+    const symLower = sym.toLowerCase();
+    for (const word of words) {
+      if (symLower.includes(word))
+        score += 2;
+    }
+  }
+  return score;
+}
+async function executeQueryRepo(input) {
+  const { source, question } = input;
+  const sourceName = extractSourceName(source);
+  const { repoPath, cleanup } = await resolveSource(source);
+  try {
+    let cached2 = analysisCache.get(repoPath);
+    let analysisId;
+    if (cached2) {
+      analysisId = cached2.result.analysisId;
+    } else {
+      const result = await orchestrateAnalysis(repoPath, {
+        depth: "standard",
+        sourceName,
+        cleanup
+      });
+      analysisId = result.analysisId;
+      cached2 = analysisCache.get(repoPath);
+      if (!cached2) {
+        throw new Error("Analysis completed but cache lookup failed");
+      }
+    }
+    const fileSymbols = new Map;
+    for (const mod of cached2.structural) {
+      for (const sym of mod.symbols) {
+        if (sym.file && sym.name) {
+          const existing = fileSymbols.get(sym.file) || [];
+          existing.push(sym.name);
+          fileSymbols.set(sym.file, existing);
+        }
+      }
+      if (mod.exports.length > 0) {
+        const existing = fileSymbols.get(mod.modulePath) || [];
+        existing.push(...mod.exports);
+        fileSymbols.set(mod.modulePath, existing);
+      }
+    }
+    const collectFiles = (node, prefix) => {
+      const path3 = prefix ? `${prefix}/${node.name}` : node.name;
+      if (node.type === "file") {
+        if (!fileSymbols.has(path3)) {
+          fileSymbols.set(path3, []);
+        }
+      } else if (node.children) {
+        for (const child of node.children) {
+          collectFiles(child, path3);
+        }
+      }
+    };
+    if (cached2.surface.repositoryMap.structure?.children) {
+      for (const child of cached2.surface.repositoryMap.structure.children) {
+        collectFiles(child, "");
+      }
+    }
+    const scored = Array.from(fileSymbols.entries()).map(([path3, symbols]) => ({
+      path: path3,
+      symbols,
+      score: scoreFileRelevance(path3, symbols, question)
+    })).filter((f3) => f3.score > 0).sort((a, b) => b.score - a.score).slice(0, 15);
+    const filesToRead = scored.length > 0 ? scored.map((f3) => f3.path) : (cached2.surface.repositoryMap.entryPoints || []).slice(0, 10);
+    const fileContents = new Map;
+    let totalChars = 0;
+    const MAX_TOTAL_CHARS = 1e5;
+    const MAX_PER_FILE = 4000;
+    for (const filePath of filesToRead) {
+      if (totalChars >= MAX_TOTAL_CHARS)
+        break;
+      const fullPath = join6(repoPath, filePath);
+      try {
+        const content = await readFile6(fullPath, "utf-8");
+        const truncated = content.length > MAX_PER_FILE ? content.slice(0, MAX_PER_FILE) + `
+... [truncated]` : content;
+        fileContents.set(filePath, truncated);
+        totalChars += truncated.length;
+      } catch {}
+    }
+    try {
+      return await queryWithGemini(question, analysisId, cached2, fileContents);
+    } catch {
+      return buildFallbackAnswer(question, analysisId, cached2, scored, fileContents);
+    }
+  } catch (error48) {
+    if (cleanup) {
+      await cleanup();
+    }
+    throw error48;
+  }
+}
+async function queryWithGemini(question, analysisId, cached2, fileContents) {
+  const surface = cached2.surface;
+  const fileSummary = Array.from(fileContents.entries()).map(([path3, content]) => `--- ${path3} ---
+${content}`).join(`
+
+`);
+  const structuralSummary = cached2.structural.map((mod) => {
+    const exports = mod.exports.slice(0, 10).map((e2) => e2.name).join(", ");
+    const funcs = mod.complexity.functionCount;
+    const classes = mod.complexity.classCount;
+    return `- ${mod.modulePath}: ${funcs} functions, ${classes} classes. Exports: ${exports || "none"}`;
+  }).join(`
+`);
+  const prompt = `Answer this question about a codebase:
+
+QUESTION: ${question}
+
+Repository: ${surface.repositoryMap.name}
+Languages: ${surface.repositoryMap.languages.map((l) => l.language).join(", ")}
+Entry points: ${surface.repositoryMap.entryPoints.slice(0, 10).join(", ")}
+Modules: ${surface.identifiedModules.map((m2) => m2.name).join(", ")}
+
+Structural overview:
+${structuralSummary}
+
+Relevant file contents:
+${fileSummary}
+
+Respond with this exact JSON structure:
+{
+  "answer": "Clear, detailed answer to the question based on the code",
+  "relevantFiles": [
+    {"path": "relative/path.ts", "reason": "Why this file is relevant"}
+  ],
+  "confidence": "high" | "medium" | "low",
+  "suggestedFollowUps": ["Follow-up question 1", "Follow-up question 2"]
+}
+
+Guidelines:
+- Reference specific files and code when possible
+- If the code doesn't clearly answer the question, say so and set confidence to "low"
+- Suggest 2-3 follow-up questions that would help understand more
+- Keep relevantFiles to the most important 5-8 files`;
+  const result = await generateJsonWithGemini(prompt, {
+    maxOutputTokens: 4096
+  });
+  return { ...result, analysisId };
+}
+function buildFallbackAnswer(question, analysisId, cached2, scored, fileContents) {
+  const surface = cached2.surface;
+  const topFiles = scored.slice(0, 8);
+  const relevantFiles = topFiles.map((f3) => ({
+    path: f3.path,
+    reason: f3.symbols.length > 0 ? `Contains relevant symbols: ${f3.symbols.slice(0, 5).join(", ")}` : `File path matches question keywords`
+  }));
+  const answer = topFiles.length > 0 ? `Based on keyword matching against the codebase structure, the most relevant files for "${question}" are listed below. ` + `The repository is a ${surface.repositoryMap.languages[0]?.language || "unknown"} project with ${surface.repositoryMap.fileCount} files. ` + `For a more detailed answer, ensure GEMINI_API_KEY is set. ` + `Use read_files with analysisId "${analysisId}" to examine the relevant files.` : `Could not find files matching "${question}" through keyword search. ` + `The repository contains ${surface.repositoryMap.fileCount} files primarily in ${surface.repositoryMap.languages[0]?.language || "unknown"}. ` + `Try rephrasing the question or use read_files with analysisId "${analysisId}" to explore specific files. ` + `For AI-powered answers, set GEMINI_API_KEY.`;
+  return {
+    answer,
+    relevantFiles,
+    confidence: topFiles.length > 3 ? "medium" : "low",
+    analysisId,
+    suggestedFollowUps: [
+      `Use read_files to examine: ${topFiles.slice(0, 3).map((f3) => f3.path).join(", ")}`,
+      `Use expand_section to drill into specific modules`,
+      `Use trace_dataflow to follow data through the system`
+    ]
+  };
+}
+var queryRepoSchema;
+var init_query = __esm(() => {
+  init_zod();
+  init_repo_loader();
+  init_orchestrator();
+  init_cache();
+  init_gemini();
+  queryRepoSchema = {
+    source: exports_external.string().describe("Local path or GitHub URL to the repository"),
+    question: exports_external.string().describe("Question about the codebase (e.g. 'how is authentication handled?')")
+  };
+});
+
 // src/mcp/tools/capabilities.ts
 var exports_capabilities = {};
 __export(exports_capabilities, {
@@ -58271,19 +58605,14 @@ function getCapabilities() {
         parameters: ["source", "from", "to"]
       },
       {
-        name: "extract_feature",
-        description: "Analyze how a specific feature is implemented",
-        parameters: ["source", "feature"]
+        name: "read_files",
+        description: "Read specific files from a previously analyzed repository",
+        parameters: ["analysisId", "paths", "maxLines"]
       },
       {
         name: "query_repo",
-        description: "Ask questions about the codebase",
+        description: "Ask a question about a codebase and get an AI-powered answer with relevant files",
         parameters: ["source", "question"]
-      },
-      {
-        name: "compare_repos",
-        description: "Compare how repositories approach the same problem",
-        parameters: ["sources", "aspect"]
       }
     ],
     models: {
@@ -73302,13 +73631,13 @@ var init_stdio2 = __esm(() => {
 });
 
 // src/mcp/tools/analyze.ts
-import { basename as basename4 } from "path";
-function extractSourceName(source) {
+import { basename as basename5 } from "path";
+function extractSourceName2(source) {
   const githubMatch = source.match(/github\.com\/([^\/]+\/[^\/]+)/);
   if (githubMatch) {
     return githubMatch[1].replace(/\.git$/, "");
   }
-  return basename4(source) || source;
+  return basename5(source) || source;
 }
 async function executeAnalyzeRepo(input) {
   const {
@@ -73319,7 +73648,7 @@ async function executeAnalyzeRepo(input) {
     tokenBudget,
     includeSemantics = false
   } = input;
-  const sourceName = extractSourceName(source);
+  const sourceName = extractSourceName2(source);
   const { repoPath, cleanup } = await resolveSource(source);
   try {
     const result = await orchestrateAnalysis(repoPath, {
@@ -73328,13 +73657,15 @@ async function executeAnalyzeRepo(input) {
       exclude,
       tokenBudget,
       includeSemantics,
-      sourceName
+      sourceName,
+      cleanup
     });
     return result;
-  } finally {
+  } catch (error48) {
     if (cleanup) {
       await cleanup();
     }
+    throw error48;
   }
 }
 var analyzeRepoSchema;
@@ -73380,6 +73711,74 @@ var init_expand = __esm(() => {
   };
 });
 
+// src/mcp/tools/read-files.ts
+import { readFile as readFile7, stat as stat5 } from "fs/promises";
+import { join as join7, resolve, normalize as normalize2 } from "path";
+async function executeReadFiles(input) {
+  const { analysisId, paths, maxLines = 500 } = input;
+  const cached2 = analysisCache.getByAnalysisId(analysisId);
+  if (!cached2) {
+    return {
+      error: `Analysis ${analysisId} not found in cache. It may have expired. Run analyze_repo again.`
+    };
+  }
+  const repoPath = cached2.repoPath;
+  if (!repoPath) {
+    return {
+      error: `No repository path stored for analysis ${analysisId}. This analysis predates the read_files feature.`
+    };
+  }
+  try {
+    await stat5(repoPath);
+  } catch {
+    return {
+      error: `Repository at ${repoPath} is no longer available. Run analyze_repo again.`
+    };
+  }
+  const resolvedRepoPath = resolve(repoPath);
+  const effectiveMaxLines = Math.min(maxLines, 2000);
+  const files = await Promise.all(paths.slice(0, 20).map(async (filePath) => {
+    const normalized = normalize2(filePath);
+    if (normalized.startsWith("..") || normalized.startsWith("/")) {
+      return { path: filePath, error: "Invalid path: must be relative and within the repository" };
+    }
+    const fullPath = resolve(join7(resolvedRepoPath, normalized));
+    if (!fullPath.startsWith(resolvedRepoPath)) {
+      return { path: filePath, error: "Invalid path: traversal outside repository" };
+    }
+    try {
+      const content = await readFile7(fullPath, "utf-8");
+      const lines = content.split(`
+`);
+      const truncated = lines.length > effectiveMaxLines;
+      const outputContent = truncated ? lines.slice(0, effectiveMaxLines).join(`
+`) : content;
+      return {
+        path: filePath,
+        content: outputContent,
+        lineCount: lines.length,
+        truncated
+      };
+    } catch {
+      return { path: filePath, error: "File not found or not readable" };
+    }
+  }));
+  return {
+    analysisId,
+    files
+  };
+}
+var readFilesSchema;
+var init_read_files = __esm(() => {
+  init_zod();
+  init_cache();
+  readFilesSchema = {
+    analysisId: exports_external.string().describe("The analysisId from a previous analyze_repo result"),
+    paths: exports_external.array(exports_external.string()).min(1).max(20).describe("Relative file paths from the repository (max 20)"),
+    maxLines: exports_external.number().min(1).max(2000).default(500).optional().describe("Maximum lines per file (default 500, max 2000)")
+  };
+});
+
 // src/mcp/tools/index.ts
 var init_tools = __esm(() => {
   init_capabilities();
@@ -73387,6 +73786,8 @@ var init_tools = __esm(() => {
   init_expand();
   init_patterns();
   init_dataflow();
+  init_read_files();
+  init_query();
 });
 
 // src/mcp/server.ts
@@ -73562,6 +73963,68 @@ var init_server2 = __esm(() => {
       };
     }
   });
+  server.tool("read_files", "Read specific files from a previously analyzed repository. Use the analysisId from analyze_repo to access files without re-cloning.", {
+    analysisId: readFilesSchema.analysisId,
+    paths: readFilesSchema.paths,
+    maxLines: readFilesSchema.maxLines
+  }, async ({ analysisId, paths, maxLines }) => {
+    try {
+      const result = await executeReadFiles({
+        analysisId,
+        paths,
+        maxLines
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2)
+          }
+        ]
+      };
+    } catch (error48) {
+      const message = error48 instanceof Error ? error48.message : String(error48);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error reading files: ${message}`
+          }
+        ],
+        isError: true
+      };
+    }
+  });
+  server.tool("query_repo", "Ask a question about a codebase and get an AI-powered answer with relevant file references. Uses cached analysis when available. Works best with GEMINI_API_KEY set, falls back to keyword matching without it.", {
+    source: queryRepoSchema.source,
+    question: queryRepoSchema.question
+  }, async ({ source, question }) => {
+    try {
+      const result = await executeQueryRepo({
+        source,
+        question
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2)
+          }
+        ]
+      };
+    } catch (error48) {
+      const message = error48 instanceof Error ? error48.message : String(error48);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error querying repository: ${message}`
+          }
+        ],
+        isError: true
+      };
+    }
+  });
   main().catch((error48) => {
     console.error("Fatal error:", error48);
     process.exit(1);
@@ -73589,13 +74052,13 @@ init_orchestrator();
 init_repo_loader();
 init_logger();
 init_package();
-import { basename as basename5 } from "path";
-function extractSourceName2(source) {
+import { basename as basename6 } from "path";
+function extractSourceName3(source) {
   const githubMatch = source.match(/github\.com\/([^\/]+\/[^\/]+)/);
   if (githubMatch) {
     return githubMatch[1].replace(/\.git$/, "");
   }
-  return basename5(source) || source;
+  return basename6(source) || source;
 }
 var program2 = new Command;
 program2.name("cba").description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI").version(package_default.version);
@@ -73605,7 +74068,7 @@ program2.command("analyze").description("Perform architectural analysis of a rep
       logger.setVerbose(true);
     if (options.quiet)
       logger.setQuiet(true);
-    const sourceName = extractSourceName2(source);
+    const sourceName = extractSourceName3(source);
     const { repoPath, cleanup } = await resolveSource(source);
     try {
       const result = await orchestrateAnalysis(repoPath, {
@@ -73662,6 +74125,23 @@ program2.command("dataflow").description("Trace data flow from an entry point").
       source,
       from,
       to: options.to
+    });
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error48) {
+    logger.error("cli", error48 instanceof Error ? error48.message : String(error48));
+    process.exit(1);
+  }
+});
+program2.command("query").description("Ask a question about a codebase").argument("<source>", "Local path or GitHub URL").argument("<question>", "Question about the codebase").option("-v, --verbose", "Show detailed progress").option("-q, --quiet", "Only output the final result").action(async (source, question, options) => {
+  try {
+    if (options.verbose)
+      logger.setVerbose(true);
+    if (options.quiet)
+      logger.setQuiet(true);
+    const { executeQueryRepo: executeQueryRepo2 } = await Promise.resolve().then(() => (init_query(), exports_query));
+    const result = await executeQueryRepo2({
+      source,
+      question
     });
     console.log(JSON.stringify(result, null, 2));
   } catch (error48) {
@@ -73741,7 +74221,7 @@ function formatAnalysisAsMarkdown(result) {
   return lines.join(`
 `);
 }
-var cliCommands = ["analyze", "patterns", "dataflow", "capabilities", "help", "-h", "--help", "-V", "--version"];
+var cliCommands = ["analyze", "patterns", "dataflow", "query", "capabilities", "help", "-h", "--help", "-V", "--version"];
 var firstArg = process.argv[2];
 var isCliMode = firstArg && cliCommands.some((cmd) => firstArg === cmd || firstArg.startsWith("-"));
 if (isCliMode) {

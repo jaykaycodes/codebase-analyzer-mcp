@@ -142,6 +142,34 @@ program
   });
 
 program
+  .command("query")
+  .description("Ask a question about a codebase")
+  .argument("<source>", "Local path or GitHub URL")
+  .argument("<question>", "Question about the codebase")
+  .option("-v, --verbose", "Show detailed progress")
+  .option("-q, --quiet", "Only output the final result")
+  .action(async (source: string, question: string, options: {
+    verbose?: boolean;
+    quiet?: boolean;
+  }) => {
+    try {
+      if (options.verbose) logger.setVerbose(true);
+      if (options.quiet) logger.setQuiet(true);
+
+      const { executeQueryRepo } = await import("../mcp/tools/query.js");
+      const result = await executeQueryRepo({
+        source,
+        question,
+      });
+
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      logger.error("cli", error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+program
   .command("capabilities")
   .description("Show available analysis capabilities")
   .action(async () => {
@@ -228,7 +256,7 @@ function formatAnalysisAsMarkdown(result: any): string {
 }
 
 // Determine mode: MCP server (default) or CLI
-const cliCommands = ["analyze", "patterns", "dataflow", "capabilities", "help", "-h", "--help", "-V", "--version"];
+const cliCommands = ["analyze", "patterns", "dataflow", "query", "capabilities", "help", "-h", "--help", "-V", "--version"];
 const firstArg = process.argv[2];
 const isCliMode = firstArg && cliCommands.some(cmd => firstArg === cmd || firstArg.startsWith("-"));
 
