@@ -1,20 +1,54 @@
 import { GoogleGenAI } from "@google/genai";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
 
 let client: GoogleGenAI | null = null;
+
+/**
+ * Resolve the Gemini API key from multiple sources:
+ * 1. GEMINI_API_KEY env var (standard)
+ * 2. ~/.config/codebase-analyzer/config.json (fallback for plugin installs)
+ */
+function resolveApiKey(): string | undefined {
+  // 1. Environment variable (works for ~/.mcp.json and CLI usage)
+  if (process.env.GEMINI_API_KEY) {
+    return process.env.GEMINI_API_KEY;
+  }
+
+  // 2. Config file fallback (works for plugin installs where env vars don't propagate)
+  try {
+    const configPath = join(homedir(), ".config", "codebase-analyzer", "config.json");
+    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    if (config.geminiApiKey) {
+      return config.geminiApiKey;
+    }
+  } catch {
+    // Config file doesn't exist or is invalid — that's fine
+  }
+
+  return undefined;
+}
 
 /**
  * Check if a Gemini API key is available without throwing.
  */
 export function hasGeminiKey(): boolean {
-  return !!process.env.GEMINI_API_KEY;
+  return !!resolveApiKey();
 }
 
 function getClient(): GoogleGenAI {
   if (!client) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = resolveApiKey();
     if (!apiKey) {
       throw new Error(
-        "GEMINI_API_KEY environment variable is required. Get one at https://aistudio.google.com/apikey"
+        "GEMINI_API_KEY not found. Set it up using one of these methods:\n\n" +
+        "Option 1: Config file (recommended for plugin installs):\n" +
+        "  mkdir -p ~/.config/codebase-analyzer\n" +
+        '  echo \'{"geminiApiKey":"your_key"}\' > ~/.config/codebase-analyzer/config.json\n\n' +
+        "Option 2: MCP server env (for ~/.mcp.json installs):\n" +
+        '  "env": { "GEMINI_API_KEY": "your_key" }\n\n' +
+        "Get a free key at https://aistudio.google.com/apikey"
       );
     }
     client = new GoogleGenAI({ apiKey });

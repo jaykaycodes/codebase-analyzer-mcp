@@ -42998,14 +42998,39 @@ var init_node = __esm(() => {
 });
 
 // src/core/gemini.ts
+import { readFileSync } from "fs";
+import { join as join2 } from "path";
+import { homedir } from "os";
+function resolveApiKey() {
+  if (process.env.GEMINI_API_KEY) {
+    return process.env.GEMINI_API_KEY;
+  }
+  try {
+    const configPath = join2(homedir(), ".config", "codebase-analyzer", "config.json");
+    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    if (config.geminiApiKey) {
+      return config.geminiApiKey;
+    }
+  } catch {}
+  return;
+}
 function hasGeminiKey() {
-  return !!process.env.GEMINI_API_KEY;
+  return !!resolveApiKey();
 }
 function getClient() {
   if (!client) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = resolveApiKey();
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY environment variable is required. Get one at https://aistudio.google.com/apikey");
+      throw new Error(`GEMINI_API_KEY not found. Set it up using one of these methods:
+
+` + `Option 1: Config file (recommended for plugin installs):
+` + `  mkdir -p ~/.config/codebase-analyzer
+` + `  echo '{"geminiApiKey":"your_key"}' > ~/.config/codebase-analyzer/config.json
+
+` + `Option 2: MCP server env (for ~/.mcp.json installs):
+` + `  "env": { "GEMINI_API_KEY": "your_key" }
+
+` + "Get a free key at https://aistudio.google.com/apikey");
     }
     client = new GoogleGenAI({ apiKey });
   }
@@ -43899,7 +43924,7 @@ var init_logger = __esm(() => {
 });
 
 // src/core/orchestrator.ts
-import { join as join2 } from "path";
+import { join as join3 } from "path";
 import { readFile as readFile2 } from "fs/promises";
 async function orchestrateAnalysis(repoPath, options = {}) {
   const startTime = Date.now();
@@ -43980,7 +44005,7 @@ async function orchestrateAnalysis(repoPath, options = {}) {
     });
     const allFiles = [];
     for (const module of modulesToAnalyze) {
-      const moduleDir = join2(repoPath, module.path);
+      const moduleDir = join3(repoPath, module.path);
     }
     structural = await analyzeModulesInParallel(repoPath, modulesToAnalyze, state);
     logger.stopSpinner(`Structural: ${structural.length} modules analyzed`);
@@ -44071,7 +44096,7 @@ async function analyzeModulesInParallel(repoPath, modules, state) {
     state.tasks.push(...batchTasks);
     const fileContents = new Map;
     await Promise.all(batch.map(async (module) => {
-      const modulePath = join2(repoPath, module.path);
+      const modulePath = join3(repoPath, module.path);
       try {
         const { glob: glob2 } = await Promise.resolve().then(() => (init_esm6(), exports_esm));
         const files = await glob2("**/*", {
@@ -44081,8 +44106,8 @@ async function analyzeModulesInParallel(repoPath, modules, state) {
           ignore: ["**/node_modules/**", "**/.git/**"]
         });
         for (const file of files.slice(0, 50)) {
-          const filePath = join2(module.path, file);
-          const fullPath = join2(repoPath, filePath);
+          const filePath = join3(module.path, file);
+          const fullPath = join3(repoPath, filePath);
           try {
             const content = await readFile2(fullPath, "utf-8");
             if (content.length < 1e5) {
@@ -44176,7 +44201,7 @@ var init_orchestrator = __esm(() => {
 
 // src/core/repo-loader.ts
 import { readFile as readFile3, stat as stat4 } from "node:fs/promises";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 async function resolveSource(source) {
   if (await isGitHubUrl(source)) {
     const repoPath = await cloneGitHubRepo(source);
@@ -44203,7 +44228,7 @@ async function cloneGitHubRepo(url) {
   const { execSync } = await import("node:child_process");
   const { mkdtemp } = await import("node:fs/promises");
   const { tmpdir } = await import("node:os");
-  const tempDir = await mkdtemp(join3(tmpdir(), "cba-"));
+  const tempDir = await mkdtemp(join4(tmpdir(), "cba-"));
   const normalizedUrl = url.replace(/\.git$/, "").replace(/\/$/, "");
   try {
     execSync(`git clone --depth 1 ${normalizedUrl}.git ${tempDir}`, {
@@ -58170,7 +58195,7 @@ __export(exports_patterns, {
   executeFindPatterns: () => executeFindPatterns,
   DETECTABLE_PATTERNS: () => DETECTABLE_PATTERNS
 });
-import { join as join4 } from "path";
+import { join as join5 } from "path";
 import { readFile as readFile4 } from "fs/promises";
 async function executeFindPatterns(input) {
   if (!hasGeminiKey()) {
@@ -58199,7 +58224,7 @@ async function executeFindPatterns(input) {
       ignore: ["**/node_modules/**", "**/.git/**", "**/dist/**", "**/build/**"]
     });
     for (const file2 of keyFiles.slice(0, 50)) {
-      const fullPath = join4(repoPath, file2);
+      const fullPath = join5(repoPath, file2);
       try {
         const content = await readFile4(fullPath, "utf-8");
         if (content.length < 50000) {
@@ -58297,7 +58322,7 @@ __export(exports_dataflow, {
   traceDataflowSchema: () => traceDataflowSchema,
   executeTraceDataflow: () => executeTraceDataflow
 });
-import { join as join5 } from "path";
+import { join as join6 } from "path";
 import { readFile as readFile5 } from "fs/promises";
 async function executeTraceDataflow(input) {
   if (!hasGeminiKey()) {
@@ -58326,7 +58351,7 @@ async function executeTraceDataflow(input) {
       ignore: ["**/node_modules/**", "**/.git/**", "**/dist/**", "**/build/**", "**/*.test.*", "**/*.spec.*"]
     });
     for (const file2 of codeFiles.slice(0, 60)) {
-      const fullPath = join5(repoPath, file2);
+      const fullPath = join6(repoPath, file2);
       try {
         const content = await readFile5(fullPath, "utf-8");
         if (content.length < 50000) {
@@ -58425,7 +58450,7 @@ __export(exports_query, {
   queryRepoSchema: () => queryRepoSchema,
   executeQueryRepo: () => executeQueryRepo
 });
-import { basename as basename4, join as join6 } from "path";
+import { basename as basename4, join as join7 } from "path";
 import { readFile as readFile6 } from "fs/promises";
 function extractSourceName(source) {
   const githubMatch = source.match(/github\.com\/([^\/]+\/[^\/]+)/);
@@ -58518,7 +58543,7 @@ async function executeQueryRepo(input) {
     for (const filePath of filesToRead) {
       if (totalChars >= MAX_TOTAL_CHARS)
         break;
-      const fullPath = join6(repoPath, filePath);
+      const fullPath = join7(repoPath, filePath);
       try {
         const content = await readFile6(fullPath, "utf-8");
         const truncated = content.length > MAX_PER_FILE ? content.slice(0, MAX_PER_FILE) + `
@@ -73761,7 +73786,7 @@ var init_expand = __esm(() => {
 
 // src/mcp/tools/read-files.ts
 import { readFile as readFile7, stat as stat5 } from "fs/promises";
-import { join as join7, resolve, normalize as normalize2 } from "path";
+import { join as join8, resolve, normalize as normalize2 } from "path";
 async function executeReadFiles(input) {
   const { analysisId, paths, maxLines = 500 } = input;
   const cached2 = analysisCache.getByAnalysisId(analysisId);
@@ -73790,7 +73815,7 @@ async function executeReadFiles(input) {
     if (normalized.startsWith("..") || normalized.startsWith("/")) {
       return { path: filePath, error: "Invalid path: must be relative and within the repository" };
     }
-    const fullPath = resolve(join7(resolvedRepoPath, normalized));
+    const fullPath = resolve(join8(resolvedRepoPath, normalized));
     if (!fullPath.startsWith(resolvedRepoPath)) {
       return { path: filePath, error: "Invalid path: traversal outside repository" };
     }
