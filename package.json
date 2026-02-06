@@ -1,6 +1,6 @@
 {
   "name": "codebase-analyzer-mcp",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Multi-layer codebase analysis MCP server with Gemini AI and progressive disclosure.",
   "type": "module",
   "main": "dist/mcp/server.js",
