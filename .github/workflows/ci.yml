@@ -28,8 +28,8 @@ jobs:
 
       - name: Test CLI
         run: |
-          bun run cba capabilities
-          bun run cba analyze . -d surface -q
+          node dist/cli/index.js capabilities
+          node dist/cli/index.js analyze . -d surface -q
 
   release:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
