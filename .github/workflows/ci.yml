@@ -24,7 +24,7 @@ jobs:
         run: bun run typecheck
 
       - name: Build JS
-        run: bun run build:js
+        run: bun run build
 
       - name: Test CLI
         run: |
@@ -78,7 +78,7 @@ jobs:
 
       - name: Build JS
         if: steps.version.outputs.changed == 'true'
-        run: bun run build:js
+        run: bun run build
 
       - name: Publish to npm (trusted publisher)
         if: steps.version.outputs.changed == 'true'
