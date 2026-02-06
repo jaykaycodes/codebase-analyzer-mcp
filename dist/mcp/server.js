@@ -70999,7 +70999,7 @@ ${content}`).join(`
 
 `);
   const structuralSummary = cached2.structural.map((mod) => {
-    const exports = mod.exports.slice(0, 10).map((e2) => e2.name).join(", ");
+    const exports = mod.exports.slice(0, 10).join(", ");
     const funcs = mod.complexity.functionCount;
     const classes = mod.complexity.classCount;
     return `- ${mod.modulePath}: ${funcs} functions, ${classes} classes. Exports: ${exports || "none"}`;
@@ -71063,7 +71063,7 @@ function buildFallbackAnswer(question, analysisId, cached2, scored, fileContents
 // package.json
 var package_default = {
   name: "codebase-analyzer-mcp",
-  version: "2.0.6",
+  version: "2.1.0",
   description: "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
   type: "module",
   main: "dist/mcp/server.js",

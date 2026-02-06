@@ -229,7 +229,7 @@ async function queryWithGemini(
 
   const structuralSummary = cached.structural
     .map((mod) => {
-      const exports = mod.exports.slice(0, 10).map((e) => e.name).join(", ");
+      const exports = mod.exports.slice(0, 10).join(", ");
       const funcs = mod.complexity.functionCount;
       const classes = mod.complexity.classCount;
       return `- ${mod.modulePath}: ${funcs} functions, ${classes} classes. Exports: ${exports || "none"}`;
