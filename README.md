@@ -5,34 +5,28 @@
 
 Analyze any codebase with Gemini AI. Progressive disclosure keeps costs low - start with free structural analysis, drill into semantic details only when needed.
 
-## Quick Start
+## Install
 
-### Claude Code Plugin
+### Option 1: Claude Code Plugin (recommended)
 
 ```bash
-claude /plugin install https://github.com/jaykaycodes/codebase-analyzer-mcp
+claude /plugin install jaykaycodes/codebase-analyzer-mcp
 ```
 
-Then use `/cba:analyze` to analyze a codebase, or just ask questions naturally.
+This gives you MCP tools + agents + the `/cba:analyze` command. Just ask questions naturally.
 
-### MCP Server
+**Gemini API key (optional):** Enables semantic analysis, pattern detection, and dataflow tracing. Without it, you still get structural analysis.
 
-Add to `~/.mcp.json` (create if it doesn't exist):
-
-```json
-{
-  "mcpServers": {
-    "codebase-analyzer": {
-      "command": "npx",
-      "args": ["-y", "codebase-analyzer-mcp"]
-    }
-  }
-}
+```bash
+mkdir -p ~/.config/codebase-analyzer
+echo '{"geminiApiKey":"YOUR_KEY"}' > ~/.config/codebase-analyzer/config.json
 ```
 
-Restart Claude Code, then use the `analyze_repo` or `query_repo` tools.
+Get a free key at https://aistudio.google.com/apikey
 
-**Optional:** For semantic analysis with Gemini AI, get an API key at https://aistudio.google.com/apikey and add it:
+### Option 2: Standalone MCP Server
+
+Add to `~/.mcp.json`:
 
 ```json
 {
@@ -41,14 +35,16 @@ Restart Claude Code, then use the `analyze_repo` or `query_repo` tools.
       "command": "npx",
       "args": ["-y", "codebase-analyzer-mcp"],
       "env": {
-        "GEMINI_API_KEY": "your_api_key"
+        "GEMINI_API_KEY": "your_key_here"
       }
     }
   }
 }
 ```
 
-### CLI
+Restart Claude Code, then use `analyze_repo`, `query_repo`, etc.
+
+### Option 3: CLI
 
 ```bash
 npx codebase-analyzer-mcp analyze .                              # Standard analysis
@@ -81,7 +77,7 @@ Analysis results include expandable sections - you only pay for what you drill i
 | `trace_dataflow` | Trace data flow through the system |
 | `get_analysis_capabilities` | List supported languages and analysis options |
 
-## Plugin
+## Plugin Components
 
 ### Command
 
@@ -98,18 +94,7 @@ Analysis results include expandable sections - you only pay for what you drill i
 | `dataflow-tracer` | Data flow tracing through systems |
 | `codebase-explorer` | Quick exploration and Q&A |
 
-Agents are routed automatically based on your question — just ask naturally.
-
----
-
-## Alternative Installation
-
-### Global Install
-
-```bash
-npm install -g codebase-analyzer-mcp
-# Then use: cba analyze .
-```
+Agents are routed automatically based on your question.
 
 ## Development
 
@@ -117,9 +102,21 @@ npm install -g codebase-analyzer-mcp
 git clone https://github.com/jaykaycodes/codebase-analyzer-mcp.git
 cd codebase-analyzer-mcp
 bun install
+bun run build         # Build dist/
 bun run dev           # Watch mode
-bun run build         # Build
-bun run cba analyze . # Test CLI
+```
+
+For local MCP testing, create `.mcp.json` at repo root:
+
+```json
+{
+  "mcpServers": {
+    "codebase-analyzer": {
+      "command": "node",
+      "args": ["dist/mcp/server.js"]
+    }
+  }
+}
 ```
 
 ## License

@@ -71136,7 +71136,7 @@ function buildFallbackAnswer(question, analysisId, cached2, scored, fileContents
 // package.json
 var package_default = {
   name: "codebase-analyzer-mcp",
-  version: "2.1.0",
+  version: "2.1.1",
   description: "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
   type: "module",
   main: "dist/mcp/server.js",

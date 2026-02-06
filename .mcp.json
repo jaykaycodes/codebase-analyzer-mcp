@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "codebase-analyzer": {
-      "command": "node",
-      "args": ["dist/mcp/server.js"]
-    }
-  }
-}

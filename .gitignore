@@ -3,6 +3,8 @@ node_modules/
 # Exclude compiled binaries (too large)
 dist/cba
 dist/cba-*
+# Local MCP config (plugin uses .claude-plugin/plugin.json instead)
+.mcp.json
 *.log
 .env
 .env.local
