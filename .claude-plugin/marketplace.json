@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "codebase-analyzer",
-      "description": "Multi-layer codebase analysis with Gemini AI. 4 agents, 5 commands, 3 skills for architecture analysis, pattern detection, and dataflow tracing.",
+      "description": "Multi-layer codebase analysis with Gemini AI. 4 agents, 1 command, 1 skill for architecture analysis, pattern detection, and dataflow tracing.",
       "version": "2.1.0",
       "author": {
         "name": "Jake Correa",
