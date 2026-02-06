@@ -42998,6 +42998,9 @@ var init_node = __esm(() => {
 });
 
 // src/core/gemini.ts
+function hasGeminiKey() {
+  return !!process.env.GEMINI_API_KEY;
+}
 function getClient() {
   if (!client) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -43104,6 +43107,21 @@ var init_gemini = __esm(() => {
 
 // src/core/layers/semantic.ts
 async function semanticAnalysis(surface, structural, options = {}) {
+  if (!hasGeminiKey()) {
+    throw new Error(`Semantic analysis (deep depth) requires GEMINI_API_KEY.
+
+` + `To set it up, add the env var to your MCP server config in ~/.mcp.json:
+
+` + `  "codebase-analyzer": {
+` + `    "command": "npx",
+` + `    "args": ["-y", "codebase-analyzer-mcp"],
+` + `    "env": { "GEMINI_API_KEY": "your_key" }
+` + `  }
+
+` + `Get a free key at https://aistudio.google.com/apikey
+
+` + "Use --depth surface or --depth standard for free analysis without an API key.");
+  }
   const repoName = surface.repositoryMap.name;
   const languages = surface.repositoryMap.languages.slice(0, 5).map((l) => `${l.language} (${l.percentage}%)`).join(", ");
   const fileCount = surface.repositoryMap.fileCount;
@@ -58155,6 +58173,21 @@ __export(exports_patterns, {
 import { join as join4 } from "path";
 import { readFile as readFile4 } from "fs/promises";
 async function executeFindPatterns(input) {
+  if (!hasGeminiKey()) {
+    throw new Error(`find_patterns requires GEMINI_API_KEY for AI-powered pattern detection.
+
+` + `To set it up, add the env var to your MCP server config in ~/.mcp.json:
+
+` + `  "codebase-analyzer": {
+` + `    "command": "npx",
+` + `    "args": ["-y", "codebase-analyzer-mcp"],
+` + `    "env": { "GEMINI_API_KEY": "your_key" }
+` + `  }
+
+` + `Get a free key at https://aistudio.google.com/apikey
+
+` + "Alternatively, use analyze_repo (free, no API key needed) or query_repo (degrades gracefully without Gemini).");
+  }
   const { source, patternTypes } = input;
   const { repoPath, cleanup } = await resolveSource(source);
   try {
@@ -58267,6 +58300,21 @@ __export(exports_dataflow, {
 import { join as join5 } from "path";
 import { readFile as readFile5 } from "fs/promises";
 async function executeTraceDataflow(input) {
+  if (!hasGeminiKey()) {
+    throw new Error(`trace_dataflow requires GEMINI_API_KEY for AI-powered dataflow analysis.
+
+` + `To set it up, add the env var to your MCP server config in ~/.mcp.json:
+
+` + `  "codebase-analyzer": {
+` + `    "command": "npx",
+` + `    "args": ["-y", "codebase-analyzer-mcp"],
+` + `    "env": { "GEMINI_API_KEY": "your_key" }
+` + `  }
+
+` + `Get a free key at https://aistudio.google.com/apikey
+
+` + "Alternatively, use query_repo which degrades gracefully without Gemini.");
+  }
   const { source, from, to } = input;
   const { repoPath, cleanup } = await resolveSource(source);
   try {

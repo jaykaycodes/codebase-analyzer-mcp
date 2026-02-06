@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { resolveSource } from "../../core/repo-loader.js";
 import { surfaceAnalysis, analyzeModulesStructurally, loadModuleFiles } from "../../core/layers/index.js";
-import { generateJsonWithGemini } from "../../core/gemini.js";
+import { generateJsonWithGemini, hasGeminiKey } from "../../core/gemini.js";
 import { join } from "path";
 import { readFile } from "fs/promises";
 import { glob } from "glob";
@@ -78,6 +78,20 @@ interface PatternAnalysisResult {
  * Execute find_patterns tool
  */
 export async function executeFindPatterns(input: FindPatternsInput): Promise<PatternAnalysisResult> {
+  if (!hasGeminiKey()) {
+    throw new Error(
+      "find_patterns requires GEMINI_API_KEY for AI-powered pattern detection.\n\n" +
+      "To set it up, add the env var to your MCP server config in ~/.mcp.json:\n\n" +
+      '  "codebase-analyzer": {\n' +
+      '    "command": "npx",\n' +
+      '    "args": ["-y", "codebase-analyzer-mcp"],\n' +
+      '    "env": { "GEMINI_API_KEY": "your_key" }\n' +
+      "  }\n\n" +
+      "Get a free key at https://aistudio.google.com/apikey\n\n" +
+      "Alternatively, use analyze_repo (free, no API key needed) or query_repo (degrades gracefully without Gemini)."
+    );
+  }
+
   const { source, patternTypes } = input;
 
   // Resolve source

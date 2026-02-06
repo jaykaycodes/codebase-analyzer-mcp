@@ -2,6 +2,13 @@ import { GoogleGenAI } from "@google/genai";
 
 let client: GoogleGenAI | null = null;
 
+/**
+ * Check if a Gemini API key is available without throwing.
+ */
+export function hasGeminiKey(): boolean {
+  return !!process.env.GEMINI_API_KEY;
+}
+
 function getClient(): GoogleGenAI {
   if (!client) {
     const apiKey = process.env.GEMINI_API_KEY;

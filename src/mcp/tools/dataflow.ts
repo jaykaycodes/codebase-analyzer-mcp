@@ -8,7 +8,7 @@
 import { z } from "zod";
 import { resolveSource } from "../../core/repo-loader.js";
 import { surfaceAnalysis } from "../../core/layers/index.js";
-import { generateJsonWithGemini } from "../../core/gemini.js";
+import { generateJsonWithGemini, hasGeminiKey } from "../../core/gemini.js";
 import { join } from "path";
 import { readFile } from "fs/promises";
 import { glob } from "glob";
@@ -68,6 +68,20 @@ interface DataflowResult {
  * Execute trace_dataflow tool
  */
 export async function executeTraceDataflow(input: TraceDataflowInput): Promise<DataflowResult> {
+  if (!hasGeminiKey()) {
+    throw new Error(
+      "trace_dataflow requires GEMINI_API_KEY for AI-powered dataflow analysis.\n\n" +
+      "To set it up, add the env var to your MCP server config in ~/.mcp.json:\n\n" +
+      '  "codebase-analyzer": {\n' +
+      '    "command": "npx",\n' +
+      '    "args": ["-y", "codebase-analyzer-mcp"],\n' +
+      '    "env": { "GEMINI_API_KEY": "your_key" }\n' +
+      "  }\n\n" +
+      "Get a free key at https://aistudio.google.com/apikey\n\n" +
+      "Alternatively, use query_repo which degrades gracefully without Gemini."
+    );
+  }
+
   const { source, from, to } = input;
 
   // Resolve source

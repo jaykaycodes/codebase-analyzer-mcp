@@ -18,7 +18,7 @@ import type {
   StructuralAnalysis,
   SurfaceAnalysis,
 } from "../../types.js";
-import { generateJsonWithGemini } from "../gemini.js";
+import { generateJsonWithGemini, hasGeminiKey } from "../gemini.js";
 
 /**
  * Semantic analysis prompt template
@@ -101,6 +101,20 @@ export async function semanticAnalysis(
     focusAreas?: string[];
   } = {}
 ): Promise<SemanticAnalysis> {
+  if (!hasGeminiKey()) {
+    throw new Error(
+      "Semantic analysis (deep depth) requires GEMINI_API_KEY.\n\n" +
+      "To set it up, add the env var to your MCP server config in ~/.mcp.json:\n\n" +
+      '  "codebase-analyzer": {\n' +
+      '    "command": "npx",\n' +
+      '    "args": ["-y", "codebase-analyzer-mcp"],\n' +
+      '    "env": { "GEMINI_API_KEY": "your_key" }\n' +
+      "  }\n\n" +
+      "Get a free key at https://aistudio.google.com/apikey\n\n" +
+      "Use --depth surface or --depth standard for free analysis without an API key."
+    );
+  }
+
   // Build context for LLM
   const repoName = surface.repositoryMap.name;
   const languages = surface.repositoryMap.languages
