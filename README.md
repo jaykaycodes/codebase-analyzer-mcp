@@ -55,10 +55,29 @@ Results include expandable sections — you only pay for what you drill into.
 npx codebase-analyzer-mcp analyze .                      # Standard analysis
 npx codebase-analyzer-mcp analyze . -d surface            # Fast, free overview
 npx codebase-analyzer-mcp analyze . -d deep -s            # Full semantic analysis
+npx codebase-analyzer-mcp analyze . -o analysis.md        # Write structured markdown to file
+npx codebase-analyzer-mcp analyze . -o analysis.json      # Write JSON to file
 npx codebase-analyzer-mcp query . "how is auth handled?"  # Ask a question
 npx codebase-analyzer-mcp patterns .                      # Find design patterns
 npx codebase-analyzer-mcp dataflow . "user login"         # Trace data flow
 ```
+
+## Usage with Claude Code
+
+Dump an analysis and reference it from your CLAUDE.md:
+
+```bash
+npx codebase-analyzer-mcp analyze . -o docs/codebase-analysis.md
+```
+
+Then add to your project's CLAUDE.md:
+
+```markdown
+## Codebase Analysis
+See [docs/codebase-analysis.md](docs/codebase-analysis.md) for full analysis.
+```
+
+Claude Code will read the summary (~50 lines) for context, then drill into specific module sections as needed using `Read` with offset/limit.
 
 ## Development
 

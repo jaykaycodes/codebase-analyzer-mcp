@@ -44251,7 +44251,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "codebase-analyzer-mcp",
-    version: "2.1.2",
+    version: "2.2.0",
     description: "Multi-layer codebase analysis MCP server with Gemini AI and progressive disclosure.",
     type: "module",
     main: "dist/mcp/server.js",
@@ -74129,7 +74129,7 @@ function extractSourceName3(source) {
 }
 var program2 = new Command;
 program2.name("cba").description("Codebase Analyzer - Multi-layer repository analysis with Gemini AI").version(package_default.version);
-program2.command("analyze").description("Perform architectural analysis of a repository").argument("<source>", "Local path or GitHub URL").option("-d, --depth <depth>", "Analysis depth: surface, standard, deep", "standard").option("-f, --focus <areas...>", "Specific areas to focus on").option("-e, --exclude <patterns...>", "Glob patterns to exclude").option("-t, --token-budget <tokens>", "Maximum token budget", "800000").option("-s, --semantics", "Include deep semantic analysis (uses LLM)").option("-v, --verbose", "Show detailed progress and subagent activity").option("-q, --quiet", "Only output the final result (no progress)").option("--format <format>", "Output format (json or markdown)", "json").action(async (source, options) => {
+program2.command("analyze").description("Perform architectural analysis of a repository").argument("<source>", "Local path or GitHub URL").option("-d, --depth <depth>", "Analysis depth: surface, standard, deep", "standard").option("-f, --focus <areas...>", "Specific areas to focus on").option("-e, --exclude <patterns...>", "Glob patterns to exclude").option("-t, --token-budget <tokens>", "Maximum token budget", "800000").option("-s, --semantics", "Include deep semantic analysis (uses LLM)").option("-v, --verbose", "Show detailed progress and subagent activity").option("-q, --quiet", "Only output the final result (no progress)").option("--format <format>", "Output format (json or markdown)", "json").option("-o, --output <path>", "Write analysis to a file (markdown by default, .json for JSON)").action(async (source, options) => {
   try {
     if (options.verbose)
       logger.setVerbose(true);
@@ -74146,7 +74146,12 @@ program2.command("analyze").description("Perform architectural analysis of a rep
         includeSemantics: options.semantics,
         sourceName
       });
-      if (options.format === "markdown") {
+      if (options.output) {
+        const { writeFile: writeFile2 } = await import("fs/promises");
+        const content = options.output.endsWith(".json") ? JSON.stringify(result, null, 2) : formatAnalysisAsMarkdown(result);
+        await writeFile2(options.output, content, "utf-8");
+        console.error(`Analysis written to ${options.output}`);
+      } else if (options.format === "markdown") {
         console.log(formatAnalysisAsMarkdown(result));
       } else {
         console.log(JSON.stringify(result, null, 2));
@@ -74220,66 +74225,137 @@ program2.command("capabilities").description("Show available analysis capabiliti
   const { formatCapabilitiesResponse: formatCapabilitiesResponse2 } = await Promise.resolve().then(() => (init_capabilities(), exports_capabilities));
   console.log(JSON.stringify(formatCapabilitiesResponse2(), null, 2));
 });
+function renderTree(node, depth, maxDepth) {
+  const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".next", "__pycache__", ".cache", "coverage"]);
+  const lines = [];
+  const indent = "  ".repeat(depth);
+  if (depth > 0) {
+    lines.push(`${indent}${node.name}${node.type === "directory" ? "/" : ""}`);
+  }
+  if (node.type === "directory" && node.children && depth < maxDepth) {
+    const dirs = node.children.filter((c) => c.type === "directory" && !SKIP_DIRS.has(c.name)).sort((a, b) => a.name.localeCompare(b.name));
+    const files = node.children.filter((c) => c.type === "file").sort((a, b) => a.name.localeCompare(b.name));
+    for (const dir of dirs) {
+      lines.push(...renderTree(dir, depth + 1, maxDepth));
+    }
+    if (depth === 0 || files.length <= 5) {
+      for (const file2 of files) {
+        lines.push(`${"  ".repeat(depth + 1)}${file2.name}`);
+      }
+    } else if (files.length > 5) {
+      lines.push(`${"  ".repeat(depth + 1)}... ${files.length} files`);
+    }
+  }
+  return lines;
+}
 function formatAnalysisAsMarkdown(result) {
   const lines = [];
-  lines.push(`# ${result.repositoryMap?.name || "Repository"} Analysis`);
+  const name = result.repositoryMap?.name || "Repository";
+  const date6 = new Date().toISOString().split("T")[0];
+  lines.push(`<!-- codebase-analyzer-mcp | ${date6} | depth: ${result.depth} | id: ${result.analysisId} -->`);
   lines.push("");
-  lines.push(`**Analysis ID:** \`${result.analysisId}\``);
-  lines.push(`**Depth:** ${result.depth}`);
-  lines.push(`**Duration:** ${result.durationMs}ms`);
+  lines.push(`# ${name}`);
   lines.push("");
-  if (result.summary) {
-    lines.push("## Summary");
-    lines.push(`- **Architecture:** ${result.summary.architectureType}`);
-    lines.push(`- **Complexity:** ${result.summary.complexity}`);
-    if (result.summary.primaryPatterns?.length > 0) {
-      lines.push(`- **Patterns:** ${result.summary.primaryPatterns.join(", ")}`);
-    }
-    if (result.summary.techStack?.length > 0) {
-      lines.push(`- **Tech Stack:** ${result.summary.techStack.join(", ")}`);
-    }
-    lines.push("");
-  }
-  if (result.repositoryMap) {
-    lines.push("## Repository Map");
-    lines.push(`- **Total Files:** ${result.repositoryMap.fileCount}`);
-    lines.push(`- **Estimated Tokens:** ${result.repositoryMap.estimatedTokens}`);
-    lines.push(`- **Languages:** ${result.repositoryMap.languages?.map((l) => `${l.language} (${l.percentage}%)`).join(", ")}`);
-    lines.push(`- **Entry Points:** ${result.repositoryMap.entryPoints?.slice(0, 5).join(", ")}`);
-    lines.push("");
-  }
-  if (result.sections?.length > 0) {
-    lines.push("## Sections");
-    for (const section of result.sections) {
-      lines.push(`### ${section.title}`);
-      lines.push(section.summary);
-      if (section.canExpand) {
-        lines.push(`*Expandable (detail: ~${section.expansionCost?.detail} tokens, full: ~${section.expansionCost?.full} tokens)*`);
-      }
-      lines.push("");
-    }
-  }
-  if (result.forAgent) {
-    lines.push("## Agent Hints");
+  if (result.forAgent?.quickSummary) {
     lines.push(result.forAgent.quickSummary);
     lines.push("");
-    if (result.forAgent.keyInsights?.length > 0) {
-      lines.push("**Key Insights:**");
-      for (const insight of result.forAgent.keyInsights) {
-        lines.push(`- ${insight}`);
-      }
-      lines.push("");
+  }
+  const repoMap = result.repositoryMap;
+  const summary = result.summary;
+  if (repoMap || summary) {
+    lines.push("## Overview");
+    lines.push("");
+    lines.push("| Metric | Value |");
+    lines.push("|--------|-------|");
+    if (repoMap?.fileCount != null) {
+      lines.push(`| Files | ${repoMap.fileCount} |`);
     }
-    if (result.forAgent.suggestedNextSteps?.length > 0) {
-      lines.push("**Suggested Next Steps:**");
-      for (const step of result.forAgent.suggestedNextSteps) {
-        lines.push(`- ${step}`);
+    if (repoMap?.languages?.length > 0) {
+      const langs = repoMap.languages.map((l) => `${l.language} (${l.percentage}%)`).join(", ");
+      lines.push(`| Languages | ${langs} |`);
+    }
+    if (summary?.architectureType) {
+      lines.push(`| Architecture | ${summary.architectureType} |`);
+    }
+    if (summary?.complexity) {
+      lines.push(`| Complexity | ${summary.complexity} |`);
+    }
+    if (repoMap?.entryPoints?.length > 0) {
+      lines.push(`| Entry points | ${repoMap.entryPoints.slice(0, 5).join(", ")} |`);
+    }
+    if (summary?.techStack?.length > 0) {
+      lines.push(`| Tech stack | ${summary.techStack.join(", ")} |`);
+    }
+    if (summary?.primaryPatterns?.length > 0) {
+      lines.push(`| Patterns | ${summary.primaryPatterns.join(", ")} |`);
+    }
+    lines.push("");
+  }
+  if (result.forAgent?.keyInsights?.length > 0) {
+    lines.push("## Key Insights");
+    lines.push("");
+    for (const insight of result.forAgent.keyInsights) {
+      lines.push(`- ${insight}`);
+    }
+    lines.push("");
+  }
+  if (repoMap?.structure) {
+    lines.push("## Structure");
+    lines.push("");
+    lines.push("```");
+    const treeLines = renderTree(repoMap.structure, 0, 3);
+    lines.push(...treeLines);
+    lines.push("```");
+    lines.push("");
+  }
+  const moduleSections = result.sections?.filter((s2) => s2.type === "module") || [];
+  if (moduleSections.length > 0) {
+    lines.push("## Modules");
+    lines.push("");
+    for (const section of moduleSections) {
+      const modulePath = section.id.replace("module_", "").replace(/_/g, "/");
+      const detail = section.detail;
+      let header = `### ${modulePath}`;
+      const meta3 = [];
+      if (section.summary)
+        meta3.push(section.summary);
+      if (meta3.length)
+        header += ` — ${meta3.join(", ")}`;
+      lines.push(header);
+      lines.push("");
+      if (detail) {
+        if (detail.type === "documentation") {
+          if (detail.headings?.length > 0) {
+            lines.push(`Headings: ${detail.headings.map((h2) => h2.title).join(", ")}`);
+          }
+        } else {
+          if (detail.exports?.length > 0) {
+            lines.push(`Exports: ${detail.exports.slice(0, 10).join(", ")}${detail.exports.length > 10 ? ", ..." : ""}`);
+          }
+          const cx = detail.complexity;
+          if (cx) {
+            lines.push(`Complexity: ${cx.cyclomaticComplexity} cyclomatic | ${cx.linesOfCode} LOC | ${cx.functionCount} functions | ${cx.classCount} classes`);
+          }
+          if (detail.symbolCount != null || detail.importCount != null) {
+            lines.push(`Symbols: ${detail.symbolCount ?? 0} | Imports: ${detail.importCount ?? 0}`);
+          }
+        }
+        lines.push("");
       }
+    }
+  }
+  const otherSections = result.sections?.filter((s2) => s2.type !== "module") || [];
+  if (otherSections.length > 0) {
+    for (const section of otherSections) {
+      lines.push(`## ${section.title}`);
+      lines.push("");
+      lines.push(section.summary);
       lines.push("");
     }
   }
   if (result.warnings?.length > 0) {
     lines.push("## Warnings");
+    lines.push("");
     for (const warning of result.warnings) {
       lines.push(`- ${warning}`);
     }
