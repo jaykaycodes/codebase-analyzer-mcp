@@ -71136,8 +71136,8 @@ function buildFallbackAnswer(question, analysisId, cached2, scored, fileContents
 // package.json
 var package_default = {
   name: "codebase-analyzer-mcp",
-  version: "2.1.1",
-  description: "Multi-layer codebase analysis with Gemini AI. MCP server + Claude plugin with progressive disclosure.",
+  version: "2.1.2",
+  description: "Multi-layer codebase analysis MCP server with Gemini AI and progressive disclosure.",
   type: "module",
   main: "dist/mcp/server.js",
   packageManager: "bun@1.3.8",
@@ -71147,13 +71147,7 @@ var package_default = {
   },
   files: [
     "dist/cli",
-    "dist/mcp",
-    "agents",
-    "commands",
-    "skills",
-    ".claude-plugin",
-    "CLAUDE.md",
-    "AGENTS.md"
+    "dist/mcp"
   ],
   scripts: {
     build: "bun scripts/build.ts",
@@ -71162,7 +71156,7 @@ var package_default = {
     typecheck: "tsc --noEmit",
     test: "bun test",
     cli: "bun src/cli/index.ts",
-    version: "bun scripts/sync-version.ts && git add .",
+    version: "git add .",
     postversion: "git push --follow-tags",
     prepublishOnly: "bun run build"
   },

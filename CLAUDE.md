@@ -1,6 +1,6 @@
 # Codebase Analyzer MCP
 
-Multi-layer codebase analysis with Gemini AI. Both an MCP server and a Claude plugin.
+Multi-layer codebase analysis MCP server with Gemini AI.
 
 ## Philosophy
 
@@ -15,38 +15,8 @@ Multi-layer codebase analysis with Gemini AI. Both an MCP server and a Claude pl
 ## Quick Start
 
 ```bash
-pnpm install && pnpm build
+bun install && bun run build
 ```
-
-## Plugin Components
-
-| Component | Count | Purpose |
-|-----------|-------|---------|
-| Agents | 4 | Specialized analysis tasks |
-| Commands | 1 | User-invocable actions |
-| Skills | 1 | Context-loaded guidance |
-| MCP Server | 1 | Tool interface for Claude |
-
-### Agents
-
-| Agent | Purpose |
-|-------|---------|
-| `architecture-analyzer` | Full codebase architecture analysis |
-| `pattern-detective` | Design/anti-pattern detection |
-| `dataflow-tracer` | Data flow tracing through systems |
-| `codebase-explorer` | Quick exploration and Q&A |
-
-### Commands
-
-| Command | Usage |
-|---------|-------|
-| `/cba:analyze` | Analyze a codebase |
-
-### Skills
-
-| Skill | Purpose |
-|-------|---------|
-| `cba:codebase-analysis` | How to use the MCP tools |
 
 ## Architecture
 
@@ -56,15 +26,13 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design.
 
 | Path | Purpose |
 |------|---------|
-| `.claude-plugin/plugin.json` | Plugin metadata |
-| `agents/` | Agent definitions |
-| `commands/` | Slash commands |
-| `skills/` | Context-loaded skills |
 | `src/mcp/server.ts` | MCP server entry |
 | `src/mcp/tools/` | MCP tool definitions |
 | `src/cli/index.ts` | CLI interface |
 | `src/core/orchestrator.ts` | Analysis coordination |
 | `src/core/layers/` | Analysis layers |
+| `src/core/gemini.ts` | Gemini AI client |
+| `src/core/cache.ts` | Analysis result cache |
 
 ## MCP Tools
 
@@ -86,41 +54,23 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design.
 | `standard` | + structural analysis with Tree-sitter | Low |
 | `deep` | + semantic analysis with Gemini | High |
 
-## Adding Components
-
-### Adding a New MCP Tool
+## Adding a New MCP Tool
 
 1. Create `src/mcp/tools/your-tool.ts` (schema + execute)
 2. Export from `src/mcp/tools/index.ts`
 3. Register in `src/mcp/server.ts`
 4. Add CLI command in `src/cli/index.ts` (optional)
-5. `pnpm build`
-
-### Adding an Agent
-
-1. Create `agents/[category]/your-agent.md`
-2. Use YAML frontmatter: name, description
-3. Include examples in description
-4. Update plugin.json description count
-
-### Adding a Command
-
-1. Create `commands/your-command.md`
-2. Set `user-invocable: true` in frontmatter
-3. Document usage, examples, workflow
-4. Update plugin.json description count
-
-### Adding a Skill
-
-1. Create `skills/your-skill/SKILL.md`
-2. Add references/ for detailed docs
-3. Keep SKILL.md under 500 lines
-4. Update plugin.json description count
+5. `bun run build`
 
 ## Environment
 
 ```bash
-GEMINI_API_KEY=...  # Required for semantic analysis
+GEMINI_API_KEY=...  # Optional. Required for semantic analysis, patterns, dataflow.
+```
+
+Also reads from `~/.config/codebase-analyzer/config.json` as fallback:
+```json
+{"geminiApiKey": "your_key"}
 ```
 
 ## Releasing
@@ -128,18 +78,11 @@ GEMINI_API_KEY=...  # Required for semantic analysis
 Uses npm trusted publishing (OIDC) - no NPM_TOKEN secret needed.
 
 1. Bump version: `npm version patch` (or minor/major)
-2. Sync version to plugin.json: `bun run version:sync`
-3. Push with tags: `git push && git push --tags`
+2. Push with tags: `git push && git push --tags`
 
 CI automatically publishes to npm when version changes on main.
 
-**Trusted publisher config:** npm package must be linked to `jaykaycodes/codebase-analyzer-mcp` in npm settings (Settings → Publishing access → Add GitHub Actions as publisher).
-
-**Requirements:** npm >= 11.5.1 (CI updates npm automatically). See [npm trusted publishing docs](https://docs.npmjs.com/trusted-publishers/).
-
 ## Key Learnings
-
-_This section captures learnings as we work on this repository._
 
 ### 2026-01-28: Source name extraction for GitHub URLs
 
@@ -153,8 +96,8 @@ Multiple bugs from accessing wrong property names (l.name vs l.language, totalFi
 
 **Pattern:** When adding new types, grep for all usages of old patterns and update together.
 
-### 2026-01-28: Plugin architecture for agentic development
+### 2026-02-05: Plugin vs MCP distribution
 
-Adopted compound-engineering patterns: agents for specialized tasks, commands for user actions, skills for context-loaded guidance. Makes the repo self-documenting for Claude.
+Claude Code plugin system adds complexity (agents, commands, skills, plugin.json) with marginal benefit for an MCP server. Env vars don't propagate to plugin MCP subprocesses, causing endless debugging. Simpler to ship as a plain MCP server with `npx`.
 
-**Pattern:** Structure repos as plugins even for MCP servers - the documentation patterns apply.
+**Pattern:** Ship MCP servers as MCP servers, not plugins. Use plugins only when you need agents/commands/skills and don't need env vars.
